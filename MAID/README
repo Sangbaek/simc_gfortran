@@ -1,0 +1,46 @@
+Modified MAID code for calling from SIMC
+
+get_xn_maid_07.f
+
+subroutine get_xn_maid_07 called in event.f
+
+
+
+******************
+Wrote a short program call_maid.f
+
+This calls subroutine  get_xn_maid_07 .
+Just used to make comparison to MAID web site.
+
+
+
+
+**********
+
+
+
+Original Code to run MAID07
+
+run_maid_07.f  fortran code obtained for Tiator reproduces MAID website 
+               main program is run_maid_07
+	       call subroutine DFTOT with input
+	       EIMEV = beam energy (MeV)
+	       EFMEV = scattered electron energy
+	       THE = scatttered electron angle (deg)
+	       TH = scattered pi0 center of mass polar angle (deg)
+	       PHI = scattered pi0 center of mass azimuthal angle (deg)
+	       returns
+	       S5FOLD = 5-fold center-of-mass cross section (ub/MeV/sr2)
+	       reaction is set to p(e,e,pi0)p
+
+maid07_final.dat used in subroutine SOLUTIONS
+
+piN_2500.dat  used in subroutine MAID and SPLINES
+
+COmpile:
+gfortran run_maid_07.f -o run_maid_07
+
+
+
+
+
