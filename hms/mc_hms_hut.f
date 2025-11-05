@@ -56,7 +56,7 @@ c from log entry entry 122424 Sept 21, 2006
 c   Ti HMS exit window replaces by preformed aluminum window 0.011 inches thick.
 	real*8 hfoil_exit_radlen,hfoil_exit_thick
 	parameter (hfoil_exit_radlen = 8.90)
-	parameter (hfoil_exit_thick  = 0.011*2.54)
+	parameter (hfoil_exit_thick  = 0.020*2.54)
 
 C spectrometer air gaps
 	real*8 hair_radlen
