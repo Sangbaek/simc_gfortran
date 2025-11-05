@@ -6,7 +6,7 @@
 
 	integer narm
 	integer typeflag   !1=generate eloss, 2=min, 3=max, 4=most probable
-	real*8 zpos, energy, mass, theta
+	real*8 ztar,zpos, energy, mass, theta
 	real*8 Eloss, radlen
 	real*8 forward_path, side_path
 	real*8 s_target, s_Al, s_kevlar, s_air, s_mylar	! distances travelled
@@ -14,15 +14,45 @@
 	real*8 Eloss_kevlar,Eloss_mylar			! (temporary)
 	real*8 z_can,t,atmp,btmp,ctmp,costmp,th_can	!for the pudding-can target.
 	logical liquid
+c 2017 cyro target cell properties
+      real*8 inner_radius_2017
+      real*8 outer_radius_2017
+      real*8 entrance_wall_2017
+      real*8 side_wall_2017
+      real*8 sphere_wall_2017
+	real*8 zlen_before,zlen,can_len
+	
+c
+	
 
 	s_Al = 0.0
 	liquid = targ%Z.lt.2.4
-
-	if (abs(zpos) .gt. (targ%length/2.+1.e-5)) then
-	  write(6,*) 'call to trip_thru_target has |zpos| > targ.length/2.'
+	ztar = zpos
+        if ( ztar  .lt. -targ%length/2.) ztar = -targ%length/2.
+        if ( ztar  .gt.  targ%length/2.) ztar = +targ%length/2.
+	if (abs(ztar) .gt. (targ%length/2.+1.e-5)) then
+	  write(6,*) 'call to trip_thru_target has |ztar| > targ.length/2.'
 	  write(6,*) 'could be numerical error, or could be error in target offset'
-	  write(6,*) 'zpos=',zpos,'  targ%length/2.=',targ%length/2.
+	  write(6,*) 'ztar=',ztar,'  targ%length/2.=',targ%length/2.
+	  
 	endif
+c targ%can ==3 is loop1 2017 target
+	if (targ%can .eq. 3) then
+	   entrance_wall_2017 = 0.0104 ! cm
+	   side_wall_2017 = 0.0162 ! cm
+	   sphere_wall_2017 = 0.0133 ! cm
+	   inner_radius_2017 = 1.315*inch_cm ! cm
+	   outer_radius_2017 = inner_radius_2017+ sphere_wall_2017! cm
+	   endif
+c targ%can ==4 is loop2 2017 target
+	if (targ%can .eq. 4) then
+	   entrance_wall_2017 = 0.0150 ! cm
+	   side_wall_2017 = 0.0219 ! cm
+	   sphere_wall_2017 = 0.0191 ! cm
+	   inner_radius_2017 = 1.315*inch_cm ! cm
+	   outer_radius_2017 = inner_radius_2017+ sphere_wall_2017! cm
+	   endif
+
 ! Which particle are we interested in?
 
 	goto (10,20,30) narm
@@ -30,12 +60,14 @@
 ! The incoming electron
 
 10	continue
-	s_target = (targ%length/2. + zpos) / abs(cos(targ%angle))
+	s_target = (targ%length/2. + ztar) / abs(cos(targ%angle))
 	if (liquid) then			!liquid target
-	  if (targ%can .eq. 1) then		!beer can (2.8 mil endcap)
-	    s_Al = s_Al + 0.0028*inch_cm
+	  if (targ%can .eq. 1) then		!beer can 2017 target loop2
+	    s_Al = s_Al + 0.015 ! cm from report on loop2
 	  else if (targ%can .eq. 2) then	!pudding can (5 mil Al, for now)
 	    s_Al = s_Al + 0.0050*inch_cm
+	  else if (targ%can .eq. 3 .or. targ%can .eq. 4) then	! 
+	    s_Al = s_Al + entrance_wall_2017
 	  endif
 	endif
 
@@ -63,39 +95,38 @@
 ! .....		X0=28.6cm for Kapton, X0=28.7cm for Mylar) 
 ! ...... ASSUMES liquid targets are 2.65" wide, and have 5.0 mil Al side walls.
 
-! ... For SHMS, use SOS windows for now (just a space filler for now).
 
 20	continue
 	if (electron_arm.eq.1) then		!electron is in HMS
-	  s_Al = 0.016*inch_cm
-	  s_air = 15
+	  s_Al = 0.020*inch_cm
+	  s_air = 24.61
  	  s_kevlar = 0.015*inch_cm
 	  s_mylar = 0.005*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta+targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta+targ%angle))
 	else if (electron_arm.eq.2) then			!SOS
 	  s_Al = 0.008*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.005*inch_cm
 	  s_mylar = 0.003*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (electron_arm.eq.3) then			!HRS-R
 	  s_Al = 0.013*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.*inch_cm
 	  s_mylar = 0.010*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (electron_arm.eq.4) then			!HRS-L
 	  s_Al = 0.013*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.*inch_cm
 	  s_mylar = 0.010*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (electron_arm.eq.5 .or. electron_arm.eq.6) then	!SHMS
-	  s_Al = 0.008*inch_cm
-	  s_air = 15
- 	  s_kevlar = 0.005*inch_cm
-	  s_mylar = 0.003*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  s_Al = (0.020+0.010)*inch_cm ! scattering chamber (0.020) + HB entrance window (0.010)
+	  s_air = 57.27
+ 	  s_kevlar = 0.00
+	  s_mylar = 0.00
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	endif
 	s_target = forward_path
 
@@ -117,10 +148,10 @@
 
 	    t=tan(theta)**2
 	    atmp=1+t
-	    btmp=-2*zpos*t
-	    ctmp=zpos**2*t-(targ%length/2.)**2
+	    btmp=-2*ztar*t
+	    ctmp=ztar**2*t-(targ%length/2.)**2
 	    z_can=(-btmp+sqrt(btmp**2-4.*atmp*ctmp))/2./atmp
-	    side_path = (z_can - zpos)/abs(cos(theta))
+	    side_path = (z_can - ztar)/abs(cos(theta))
             s_target = side_path
 	    costmp=z_can/(targ%length/2.)
 	    if (abs(costmp).le.1) then
@@ -133,6 +164,19 @@ c	      stop 'z_can > can radius in target.f !!!'
 c	       stop
 	    endif
 	    s_Al = s_Al + 0.0050*inch_cm/abs(sin(target_pi/2 - (theta - th_can)))
+	  else if (targ%can .eq. 3.or. targ%can .eq. 4) then	! loop1 or loop2 cryo2017
+	     can_len = targ%length - inner_radius_2017 ! length can without half-sphere cap
+	     zlen_before = targ%length/2.+ztar
+	     if ( (zlen_before+inner_radius_2017/tan(theta)) .lt. can_len) then
+		s_target = inner_radius_2017/sin(theta)
+                s_al = s_al+ side_wall_2017
+             else ! goes thru the half-sphere cap
+		zlen = can_len - zlen_before
+		s_target = sqrt(inner_radius_2017**2 - (zlen*sin(theta))**2) 
+     >            + zlen*cos(theta)
+		s_al = s_al+ sqrt(outer_radius_2017**2 - (zlen*sin(theta))**2)
+     >            - sqrt(inner_radius_2017**2 - (zlen*sin(theta))**2) 
+             endif
 	  endif
 
 	endif		
@@ -149,7 +193,10 @@ c	       stop
      &                    mass,typeflag,Eloss_kevlar)
 	call enerloss_new(s_mylar,rho_mylar,Z_mylar,A_mylar,energy,mass,
      &                    typeflag,Eloss_mylar)
+	if (s_kevlar .eq. 0) Eloss_kevlar=0
+	if (s_mylar .eq. 0) Eloss_mylar=0
 	Eloss = Eloss_target + Eloss_Al + Eloss_air + Eloss_kevlar + Eloss_mylar
+ 
 
 	return
 
@@ -157,39 +204,39 @@ c	       stop
 
 30	continue
 	if (hadron_arm.eq.1) then		!proton in HMS
-	  s_Al = 0.016*inch_cm
-	  s_air = 15
- 	  s_kevlar = 0.015*inch_cm
+	  s_Al = 0.020*inch_cm
+	  s_air = 24.61
+  	  s_kevlar = 0.015*inch_cm
 	  s_mylar = 0.005*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta+targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta+targ%angle))
 	else if (hadron_arm.eq.2) then				!SOS
 	  s_Al = 0.008*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.005*inch_cm
 	  s_mylar = 0.003*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (hadron_arm.eq.3) then				!HRS-R
 	  s_Al = 0.013*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.*inch_cm
 	  s_mylar = 0.010*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (hadron_arm.eq.4) then				!HRS-L
 
-!	  if (abs(zpos/targ.length).lt.0.00001) write(6,*) 'SOMEONE LEFT THE SAFETY WINDOW IN SIMC!!!!!!!'
+!	  if (abs(ztar/targ.length).lt.0.00001) write(6,*) 'SOMEONE LEFT THE SAFETY WINDOW IN SIMC!!!!!!!'
 !	  s_Al = 0.125*inch_cm
 
 	  s_Al = 0.013*inch_cm
 	  s_air = 15
  	  s_kevlar = 0.*inch_cm
 	  s_mylar = 0.010*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	else if (hadron_arm.eq.5 .or. hadron_arm.eq.6) then	!SHMS
-	  s_Al = 0.008*inch_cm
-	  s_air = 15
- 	  s_kevlar = 0.005*inch_cm
-	  s_mylar = 0.003*inch_cm
-	  forward_path = (targ%length/2.-zpos) / abs(cos(theta-targ%angle))
+	  s_Al = (0.020+0.010)*inch_cm ! scattering chamber (0.020) + HB entrance window (0.010)
+	  s_air = 57.27
+ 	  s_kevlar = 0.00
+	  s_mylar = 0.00
+	  forward_path = (targ%length/2.-ztar) / abs(cos(theta-targ%angle))
 	endif
 
 	s_target = forward_path
@@ -211,10 +258,10 @@ c	       stop
 
 	    t=tan(theta)**2
 	    atmp=1+t
-	    btmp=-2*zpos*t
-	    ctmp=zpos**2*t-(targ%length/2.)**2
+	    btmp=-2*ztar*t
+	    ctmp=ztar**2*t-(targ%length/2.)**2
 	    z_can=(-btmp+sqrt(btmp**2-4.*atmp*ctmp))/2./atmp
-	    side_path = (z_can - zpos)/abs(cos(theta))
+	    side_path = (z_can - ztar)/abs(cos(theta))
             s_target = side_path
 	    costmp=z_can/(targ%length/2.)
 	    if (abs(costmp).le.1) then
@@ -227,6 +274,19 @@ c	      stop 'z_can > can radius in target.f !!!'
 c	      stop
 	    endif
 	    s_Al = s_Al + 0.0050*inch_cm/abs(sin(target_pi/2 - (theta - th_can)))
+	  else if (targ%can .eq. 3 .or. targ%can .eq. 4) then	! loop1 cryo2017
+	     can_len = targ%length - inner_radius_2017 ! length can without half-sphere cap
+	     zlen_before = targ%length/2.+ztar
+	     if ( (zlen_before+inner_radius_2017/tan(theta)) .lt. can_len) then
+		s_target = inner_radius_2017/sin(theta)
+                s_al = s_al+ side_wall_2017
+             else ! goes thru the half-sphere cap
+		zlen = can_len - zlen_before
+		s_target = sqrt(inner_radius_2017**2 - (zlen*sin(theta))**2) 
+     >            + zlen*cos(theta)
+		s_al = s_al+ sqrt(outer_radius_2017**2 - (zlen*sin(theta))**2)
+     >            - sqrt(inner_radius_2017**2 - (zlen*sin(theta))**2) 
+             endif
 	  endif
 
 	endif
@@ -246,8 +306,7 @@ c	      stop
      &                    typeflag,Eloss_mylar)
 
 	Eloss=Eloss_target+Eloss_Al+Eloss_air+Eloss_kevlar+Eloss_mylar
-
-
+ 
 	return
 	end
 
@@ -274,6 +333,8 @@ c	      stop
 
 	real*8 zero
 	parameter (zero=0.0e0)	!double precision zero for subroutine calls
+        real*8 inner_radius_2017
+	   inner_radius_2017 = 1.315*inch_cm ! cm
 
 !Given limiting values for the electron/proton angles, the z-position in the
 !target, and beta for the proton, determine min and max losses in target (and
@@ -307,7 +368,7 @@ C the perfect range, but it's easier than reproducing the generated limits here
      &           targ%Eloss(2)%min, targ%teff(2)%min, Me, 2)
 
 ! ... liquid
-	else if (targ%can .eq. 1) then		!beer can
+	else if (targ%can .eq. 1 ) then		!beer can
 	  if (z%max.ge.targ%length/2.) then
 	    th_corner_max = target_pi/2.
 	  else
@@ -320,6 +381,42 @@ C the perfect range, but it's easier than reproducing the generated limits here
 	  if (th_corner_min.le.the%max .and. th_corner_max.ge.the%min) then
 	    th_corner = max(th_corner_min,the%min)
 	    zz = targ%length/2. - 1.25*inch_cm/tan(th_corner)
+	    th1 = th_corner-.0001
+	    th2 = th_corner+.0001
+	  else
+	    zz = z%min
+	    th1 = the%min
+	    th2 = the%max
+	  endif
+	  call trip_thru_target(2, zz, energymax, th1, E1, t1, Me, 3)
+	  call trip_thru_target(2, zz, energymax, th2, E2, t2, Me, 3)
+	  targ%Eloss(2)%max = max(E1,E2)
+	  targ%teff(2)%max = max(t1,t2)
+
+! ........ min loss: try all possibilities (in min case, no way
+! ........ an intermediate z or th will do the trick).
+	  targ%Eloss(2)%min = 1.d10
+	  do i = 0, 3
+	    call trip_thru_target (2, z%min+int(i/2)*(z%max-z%min), energymin,
+     >			the%min+mod(i,2)*(the%max-the%min), E1, t1, Me, 2)
+	    if (E1 .lt. targ%Eloss(2)%min) then
+	      targ%Eloss(2)%min = E1
+	      targ%teff(2)%min = t1
+	    endif
+	  enddo
+
+	else if (targ%can .eq. 3 .or. targ%can .eq. 4 ) then  ! cryo2017
+	  if (z%max.ge.targ%length/2.) then
+	    th_corner_max = target_pi/2.
+	  else
+	    th_corner_max = atan(inner_radius_2017/(targ%length/2.-z%max))
+	  endif
+	  th_corner_min = atan(inner_radius_2017/(targ%length/2.-z%min))
+! ... max loss: do we have access to a corner shot?  try a hair on either
+! ... side, front or side walls could be thicker (too lazy to check!)
+	  if (th_corner_min.le.the%max .and. th_corner_max.ge.the%min) then
+	    th_corner = max(th_corner_min,the%min)
+	    zz = targ%length/2. - inner_radius_2017/tan(th_corner)
 	    th1 = th_corner-.0001
 	    th2 = th_corner+.0001
 	  else
@@ -394,7 +491,7 @@ C the perfect range, but it's easier than reproducing the generated limits here
 	  targ%teff(3)%min = min(t1,t2)
 
 ! ... liquid
-	else if (targ%can .eq. 1) then	!beer can
+	else if (targ%can .eq. 1 ) then	!beer can
 	  if (z%max .ge. targ%length/2.) then
 	    th_corner_max = target_pi/2.
 	  else
@@ -407,6 +504,49 @@ C the perfect range, but it's easier than reproducing the generated limits here
 	  if (th_corner_min.le.thp%max .and. th_corner_max.ge.thp%min) then
 	    th_corner = max(th_corner_min,thp%min)
 	    zz = targ%length/2. - 1.25*inch_cm/tan(th_corner)
+	    th1 = th_corner-.0001
+	    th2 = th_corner+.0001
+	  else
+	    zz = z%min
+	    th1 = thp%min
+	    th2 = thp%max
+	  endif
+	  call trip_thru_target (3, zz, energymin, th1, E1, t1, m, 3)
+	  call trip_thru_target (3, zz, energymin, th2, E2, t2, m, 3)
+	  call trip_thru_target (3, zz, energymax, th1, E3, t3, m, 3)
+	  call trip_thru_target (3, zz, energymax, th2, E4, t4, m, 3)
+	  targ%Eloss(3)%max = max(E1,E2,E3,E4)
+	  targ%teff(3)%max = max(t1,t2,t3,t4)
+
+! ........ min loss: try all possibilities (in min case, no way
+! ........ an intermediate z or th will do the trick)
+	  targ%Eloss(3)%min = 1.d10
+	  do i = 0, 3
+	    call trip_thru_target (3, z%min+int(i/2)*(z%max-z%min), energymin,
+     >		thp%min+mod(i,2)*(thp%max-thp%min), E1, t1, m, 2)
+	    if (E1 .lt. targ%Eloss(3)%min) then
+	      targ%Eloss(3)%min = E1
+	      targ%teff(3)%min = t1
+	      zz = z%min+int(i/2)*(z%max-z%min)
+	      th1 = thp%min+mod(i,2)*(thp%max-thp%min)
+	    endif
+	  enddo
+	  call trip_thru_target (3, zz, energymax, th1, E1, t1, m, 2)
+	  targ%Eloss(3)%min = min(targ%Eloss(3)%min, E1)
+	else if (targ%can .eq. 3 .or.targ%can .eq. 4 ) then
+	  if (z%max .ge. targ%length/2.) then
+	    th_corner_max = target_pi/2.
+	  else
+	    th_corner_max = atan(inner_radius_2017/(targ%length/2.-z%max))
+	  endif
+	  th_corner_min = atan(inner_radius_2017/(targ%length/2.-z%min))
+          write(*,*) ' corer = ',th_corner_min,th_corner_max
+! ........ max loss: do we have access to a corner shot?
+! ........ try a hair on either side, front or side walls could be
+! thicker (too lazy to check!)
+	  if (th_corner_min.le.thp%max .and. th_corner_max.ge.thp%min) then
+	    th_corner = max(th_corner_min,thp%min)
+	    zz = targ%length/2. - inner_radius_2017/tan(th_corner)
 	    th1 = th_corner-.0001
 	    th2 = th_corner+.0001
 	  else

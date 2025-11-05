@@ -40,6 +40,9 @@
 	real*8 dum1,dum2,dum3,dum4,dum5,dum6,dum7
 	real*8 mrec_guess
 
+         logical prod_in_cm
+         common /cm_logical/  prod_in_cm
+
 	integer*4 iread, iq2, iang
 	integer*4 i, j, k, ii
 	integer*4 ierr, thload, thbook
@@ -57,6 +60,8 @@
 	use_benhar_sf = .false.
 	random_state_file = ' '
 	random_seed = 0
+
+
 
 ! ... read the dbase file.
 
@@ -103,7 +108,20 @@
 	  ierr = thbook()
 	  if (ierr.ne.0) stop ' Booking problem!  Not going to try again...wouldnt be prudent'
 	endif	!extra dbase input file
-
+c
+	if (pad_1x_lo_num .eq. 0) pad_1x_lo_num=1 
+	if (pad_2x_lo_num .eq. 0) pad_2x_lo_num=1 
+	if (pad_1x_hi_num .eq. 0) pad_1x_hi_num=13 
+	if (pad_2x_hi_num .eq. 0) pad_2x_hi_num=14
+c
+	if (doing_prod_in_cm .eq. 1 ) then
+	      write(*,*) " Production in cm frame"
+	      prod_in_cm = .true.
+	   else
+	      prod_in_cm = .false.
+	      write(*,*) " Production in lab frame"
+	      
+	   endif
 C DJG: Ugly hack! This must come before the test on doing_pion
 	if(doing_pion .and. doing_semi) then
 	   doing_semipi=.true.
@@ -162,6 +180,7 @@ C DJG:
 
 	else if (doing_delta) then
 	  Mh=Mp
+	  if ( abs(mrecoil-939.56) .le. 10) Mh=mpi
 	  if (nint(targ%A).ge.2) 
      >      write(6,*) 'WARNING: Delta cross section model only set up for proton target!'
 	  doing_hyddelta = (nint(targ%A).eq.1)
@@ -274,7 +293,7 @@ C DJG:
 	  sign_hadron=1.0
 	else if (doing_delta) then		!Strike (and detect) proton, pion 'recoil'
 	  targ%Mtar_struck = Mp
-	  targ%Mrec_struck = Mpi
+	  targ%Mrec_struck = Mrecoil
 	  sign_hadron=1.0
 	else if(doing_semi) then         ! For now, just assuming proton mass
 	   targ%Mtar_struck = Mp
@@ -408,7 +427,7 @@ C DJG:
 	    targ%angle = 0.0
 	    write(6,*) 'Forcing target angle to zero for cryotarget.'
 	  endif
-	  if (targ%can.ne.1 .and. targ%can.ne.2) stop 'bad targ.can value'
+	  if (targ%can .gt. 4 .or. targ%can .lt. 1) stop 'bad targ.can value'
 	endif
 	if(sin(targ%angle) .gt. 0.85) then
 	  write(6,*) 'BAD targ.angle (0 is perp. to beam, +ve is rotated towards SOS)'
@@ -866,6 +885,7 @@ C DJG:
 	ierr = regparmstring('extra_dbase_file',extra_dbase_file,0)
 	ierr = regparmstring('random_state_file',random_state_file,0)
 	ierr = regparmint('random_seed',random_seed,0)
+	ierr = regparmstring('vcs_xs_file',vcs_xs_file,0)
 
 *	EXPERIMENT
 
@@ -881,7 +901,9 @@ C DJG:
 	ierr = regparmint('doing_hplus', doing_hplus,1)
 	ierr = regparmint('doing_rho',doing_rho,0)
 	ierr = regparmint('doing_decay',doing_decay,0)
+	ierr = regparmint('doing_prod_in_cm',doing_prod_in_cm,0)
 	ierr = regparmdouble('ctau',ctau,0)
+	ierr = regparmdouble('Mrecoil',Mrecoil,0)
 
 *	DEBUG
 
@@ -992,6 +1014,10 @@ C DJG:
 	ierr = regparmdouble('SPedge%p%yptar%max',SPedge%p%yptar%max,0)
 	ierr = regparmdouble('SPedge%p%xptar%min',SPedge%p%xptar%min,0)
 	ierr = regparmdouble('SPedge%p%xptar%max',SPedge%p%xptar%max,0)
+	ierr = regparmint('shms_pad_1x_lo_num',pad_1x_lo_num,0)
+	ierr = regparmint('shms_pad_1x_hi_num',pad_1x_hi_num,0)
+	ierr = regparmint('shms_pad_2x_lo_num',pad_2x_lo_num,0)
+	ierr = regparmint('shms_pad_2x_hi_num',pad_2x_hi_num,0)
 
 	if (debug(2)) write(6,*)'regallvars: ending'
 	return

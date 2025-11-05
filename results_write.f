@@ -19,6 +19,8 @@
 !local (e,e'pi/K) calculations:
 !	real*8 t		!t
 	real*8 dummy
+	real*8 zhadron,zelec
+	common /reconz/ zhadron,zelec
 
 	logical success
 
@@ -72,6 +74,7 @@
 	  ntu(10) = orig%e%yptar			!mr
 	  ntu(11) = orig%e%xptar			!mr
 	  ntu(12) = main%target%z*spec%e%sin_th
+	  ntu(58) = zelec
 	  ntu(13) = recon%p%delta
 	  ntu(14) = recon%p%yptar			!mr
 	  ntu(15) = recon%p%xptar			!mr
@@ -84,6 +87,7 @@
 	  ntu(22) = orig%p%yptar			!mr
 	  ntu(23) = orig%p%xptar			!mr
  	  ntu(24) = -main%target%z*spec%p%sin_th
+	  ntu(59) =zhadron
 	else if (electron_arm.eq.2 .or. electron_arm.eq.4 .or.
      >		 electron_arm.eq.5 .or. electron_arm.eq.6.or. electron_arm.eq.8) then  !e- = left.
 	  ntu(1) = recon%p%delta
@@ -101,6 +105,7 @@ c	  ntu(11) = vertex%p%xptar			!mr
 	  ntu(10) = orig%p%yptar			!mr
 	  ntu(11) = orig%p%xptar			!mr
 	  ntu(12) = main%target%z*spec%p%sin_th
+	  ntu(58) = zhadron
 	  ntu(13) = recon%e%delta
 	  ntu(14) = recon%e%yptar			!mr
 	  ntu(15) = recon%e%xptar			!mr
@@ -113,6 +118,7 @@ c	  ntu(11) = vertex%p%xptar			!mr
 	  ntu(22) = orig%e%yptar			!mr
 	  ntu(23) = orig%e%xptar			!mr
 	  ntu(24) = -main%target%z*spec%e%sin_th
+	  ntu(59) = zelec
 	else
 	  write (6,*) 'results_write not yet set up for your spectrometers.'
 	endif
@@ -127,28 +133,36 @@ c	  ntu(11) = vertex%p%xptar			!mr
 	ntu(33) = recon%phi_pq				!phi_pq - radians
 
 	if (doing_pion .or. doing_kaon .or. doing_delta) then
-	  ntu(34) = ntup%mm/1000.			!missmass (nucleon)
+	  ntu(34) = ntup%mm2/1000./1000.			!mm2 (nucleon)
 	  ntu(35) = ntup%mmA/1000.			!missmass (nucleus)
-	  ntu(36) = recon%p%P/1000.			!ppi - GeV/c
-	  ntu(37) = ntup%t/1.e6				!t - GeV^2
+c	  ntu(36) = recon%p%P/1000.			!ppi - GeV/c
+c	  ntu(37) = ntup%t/1.e6				!t - GeV^2
+	  ntu(36) = vertex%thetacm*180/3.14159
+	  ntu(37) = vertex%phicm*180/3.14159
 	  ntu(38) = recon%PmPar/1000.
 	  ntu(39) = recon%PmPer/1000.
 	  ntu(40) = recon%PmOop/1000.
 	  ntu(41) = -main%target%rastery		!fry - cm
-	  ntu(42) = ntup%radphot/1000.			!radphot - GeV
+c	  ntu(42) = ntup%radphot/1000.			!radphot - GeV
 	  dummy = pferx*vertex%uq%x + pfery*vertex%uq%y + pferz*vertex%uq%z
 	  if (dummy.eq.0) dummy=1.e-20
-	  ntu(43) = pfer/1000.*abs(dummy)/dummy		!p_fermi - GeV/c
+c	  ntu(43) = pfer/1000.*abs(dummy)/dummy		!p_fermi - GeV/c
+	  ntu(42) = acos(recon%coscm)*180/3.14159
+	  ntu(43) = recon%phicm*180/3.14159
 	  ntu(44) = main%sigcc				!d5sig
 	  ntu(45) = ntup%sigcm				!pion sig_cm
 	  ntu(46) = main%weight
-	  ntu(47) = decdist				!decay distance (cm)
-	  ntu(48) = sqrt(Mh2_final)
-	  ntu(49) = pfer/1000.*dummy			!p_fermi along q.
+	  ntu(47) = ntup%radphot/1000.
+	  ntu(48) = vertex%Ein/1000.
+	  ntu(49) = vertex%e%E/1000.		!p_fermi along q.
 	  ntu(50) = vertex%Q2/1.e6
 	  ntu(51) = main%w/1.e3
-	  ntu(52) = main%t/1.e6
+	  ntu(52) = (vertex%Emiss*vertex%Emiss-vertex%Pmiss*vertex%Pmiss)/1.e6
 	  ntu(53) = main%phi_pq
+	  ntu(54) = save_mp_eloss(1) ! main%target%Eloss(1)
+	  ntu(55) = save_mp_eloss(2) !main%target%Eloss(2)
+	  ntu(56) = save_mp_eloss(3) !main%target%Eloss(3)
+	  ntu(57) = main%target%z
 	  if(using_tgt_field) then
 	     ntu(54) = recon%theta_tarq
 	     ntu(55) = recon%phi_targ
@@ -224,8 +238,20 @@ c	  ntu(11) = vertex%p%xptar			!mr
 	  ntu(42) = ntup%radphot/1000.			!radphot - GeV
 	  ntu(43) = main%sigcc
 	  ntu(44) = main%weight
+	  ntu(45) = save_mp_eloss(1) !main%target%Eloss(1)
+	  ntu(46) = save_mp_eloss(2) !main%target%Eloss(2)
+	  ntu(47) = save_mp_eloss(3) !main%target%Eloss(3)
+	  ntu(48) = main%target%z
+	   if(electron_arm.eq.1 .or. electron_arm.eq.3.or. electron_arm.eq.7)then !	endif
+	  ntu(49) = zelec
+	  ntu(50) =zhadron
+	  endif
+	  if (electron_arm.eq.2 .or. electron_arm.eq.4 .or. electron_arm.eq.5 
+     >.or. electron_arm.eq.6.or. electron_arm.eq.8) then
+	  ntu(49) = zhadron
+	  ntu(50) = zelec
+	  endif
 	endif
-
 	call HFN(NtupleID,ntu)
 	if (debug(2)) write(6,*)'r_ntu_write: ending'
 	return

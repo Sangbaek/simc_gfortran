@@ -96,13 +96,13 @@
 	NtupleTag(m) = 'phipq'		! 33
 	if (doing_pion .or. doing_kaon .or. doing_delta) then
 	  m = m+1
-	  NtupleTag(m) = 'missmass'	! 34
+	  NtupleTag(m) = 'MM2'	! 34
 	  m = m+1
 	  NtupleTag(m) = 'mmnuc'	! 35
 	  m = m+1
-	  NtupleTag(m) = 'phad'		! 36
+	  NtupleTag(m) = 'thcmi'		! 36
 	  m = m+1
-	  NtupleTag(m) = 't'		! 37
+	  NtupleTag(m) = 'phicmi'		! 37
 	  m = m+1
 	  NtupleTag(m) = 'pmpar'	! 38
 	  m = m+1
@@ -112,9 +112,9 @@
 	  m = m+1
 	  NtupleTag(m) = 'fry'		! 41		!+y is up.
 	  m = m+1
-	  NtupleTag(m) = 'radphot'	! 42
+	  NtupleTag(m) = 'thcm'	! 42
 	  m = m+1
-	  NtupleTag(m) = 'pfermi'	! 43
+	  NtupleTag(m) = 'phicm'	! 43
 	  m = m+1
 	  NtupleTag(m) = 'siglab'	! 44
 	  m = m+1
@@ -122,19 +122,31 @@
 	  m = m+1
 	  NtupleTag(m) = 'Weight'	! 46
 	  m = m+1
-	  NtupleTag(m) = 'decdist'	! 47
+	  NtupleTag(m) = 'Eradph'	! 47
 	  m = m+1
-	  NtupleTag(m) = 'Mhadron'	! 48
+	  NtupleTag(m) = 'Eb_ver'	! 48
 	  m = m+1
-	  NtupleTag(m) = 'pdotqhat'	! 49
+	  NtupleTag(m) = 'E_ver'	! 49
 	  m = m+1
 	  NtupleTag(m) = 'Q2i'		! 50
 	  m = m+1
 	  NtupleTag(m) = 'Wi'		! 51
 	  m = m+1
-	  NtupleTag(m) = 'ti'		! 52
+	  NtupleTag(m) = 'MM2i'		! 52
 	  m = m+1
 	  NtupleTag(m) = 'phipqi'	! 53
+	  m = m+1
+	  NtupleTag(m) = 'EbEloss'	! 54
+	  m = m+1
+	  NtupleTag(m) = 'EeEloss'	! 55
+	  m = m+1
+	  NtupleTag(m) = 'EpEloss'	! 56
+	  m = m+1
+	  NtupleTag(m) = 'ztari'	! 57
+	  m = m+1
+	  NtupleTag(m) = 'hsztar'	! 58
+	  m = m+1
+	  NtupleTag(m) = 'ssztar'	! 59
 	  if(using_tgt_field) then
 	     m = m+1
 	     NtupleTag(m) = 'th_tarq' ! 54
@@ -254,6 +266,18 @@
 	  NtupleTag(m) = 'sigcc'	! 43
 	  m = m+1
 	  NtupleTag(m) = 'Weight'	! 44
+	  m = m+1
+	  NtupleTag(m) = 'EbEloss'	! 45
+	  m = m+1
+	  NtupleTag(m) = 'EeEloss'	! 46
+	  m = m+1
+	  NtupleTag(m) = 'EpEloss'	! 47
+	  m = m+1
+	  NtupleTag(m) = 'ztari'	! 48
+	  m = m+1
+	  NtupleTag(m) = 'hsztar'	! 49
+	  m = m+1
+	  NtupleTag(m) = 'ssztar'	! 50
 	endif
 
 !	else		!used to be the if (doing_phsp) option.

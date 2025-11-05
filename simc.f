@@ -41,6 +41,10 @@
 	real*8 grnd
 	real*8 ang_targ_earm,ang_targ_parm
 	logical restorerndstate
+c
+         logical prod_in_cm
+         common /cm_logical/  prod_in_cm
+c         data prod_in_cm / .false. /
 c 
 
 ! INITIALIZE
@@ -226,11 +230,12 @@ cdg	call time (timestring1(11:23))
 	    call complete_recon_ev(recon,success)
 	  endif
 
-	  if(debug(2)) write(6,*)'sim: after comp_ev, success =',success
+	  if(debug(2)) write(6,*)'sim: after comp_recon_ev, success =',success
 	  if(debug(5)) write(6,*) 'recon%Em,recon%Pm',recon%Em,recon%Pm
 ! ... calculate remaining pieces of the main structure
 
 	  if (success) call complete_main(.false.,main,vertex,vertex0,recon,success)
+	  if(debug(2)) write(6,*)'sim: after comp_main, success =',success
 ! ... Apply SPedge cuts to success if hard_cuts is set.
 	    pass_cuts = .not. (
      >	      recon%e%delta .le. (SPedge%e%delta%min+slop%MC%e%delta%used) .or.
@@ -393,6 +398,7 @@ c	call time (timestring2(11:23))
 	if (doing_deuterium.or.doing_heavy.or.doing_pion.or.doing_kaon
      >      .or.doing_delta.or.doing_rho .or. doing_semi) then
 	  genvol = genvol * domega_p * (gen%e%E%max-gen%e%E%min)
+	  if (prod_in_cm) genvol = genvol/domega_p*4*pi
 	endif
 
 	if (doing_heavy.or.doing_semi) then		!6-fold
@@ -1233,6 +1239,7 @@ c	call complete_ev(main0,vertex0,success)
 c	if (debug(2)) write(6,*)'calc_cent: done with complete_ev'
 c	if (.not.success) stop 'COMPLETE_EV failed trying to complete a CENTRAL event!'
 
+	call complete_ev(main0,vertex0,success)
 	call complete_recon_ev(vertex0,success)
 	if (debug(2)) write(6,*)'calc_cent: done with complete_recon_ev'
 	if (.not.success) stop 'COMPLETE_EV failed trying to complete a CENTRAL event!'
@@ -1325,7 +1332,8 @@ c	enddo
 	real*8 dx_tmp,dy_tmp
 
 	real*8 ctheta,stheta,phad,pelec
-	real*8 zhadron
+	real*8 zhadron,zelec,xtemp
+	common /reconz/ zhadron,zelec
 
 	real*8 zero
 	parameter (zero=0.0e0)	!double precision zero for subroutine calls
@@ -1436,6 +1444,7 @@ C DJG moved this to the last part of generate!!!
 	  z_P_arm = 0.0
 
 	  main%SP%p%z=y_P_arm
+	  main%SP%p%x=x_P_arm
 
 ! ... Monte Carlo through the P arm! if we succeed, continue ...
 ! ... Here's what's passed:
@@ -1459,27 +1468,27 @@ C DJG moved this to the last part of generate!!!
 	    call mc_hms(spec%p%P, spec%p%theta, delta_P_arm, x_P_arm,
      >		y_P_arm, z_P_arm, dx_P_arm, dy_P_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, fry, ok_P_arm, pathlen)
+     >		ntup%resfac, x_P_arm, ok_P_arm, pathlen)
 	  else if (hadron_arm.eq.2) then
 	    call mc_sos(spec%p%P, spec%p%theta, delta_P_arm, x_P_arm,
      >		y_P_arm, z_P_arm, dx_P_arm, dy_P_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, fry, ok_P_arm, pathlen)
+     >		ntup%resfac, x_P_arm, ok_P_arm, pathlen)
 	  else if (hadron_arm.eq.3) then
 	    call mc_hrsr(spec%p%P, spec%p%theta, delta_P_arm, x_P_arm,
      >		y_P_arm, z_P_arm, dx_P_arm, dy_P_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, fry, ok_P_arm, pathlen)
+     >		ntup%resfac, x_P_arm, ok_P_arm, pathlen)
 	  else if (hadron_arm.eq.4) then
 	    call mc_hrsl(spec%p%P, spec%p%theta, delta_P_arm, x_P_arm,
      >		y_P_arm, z_P_arm, dx_P_arm, dy_P_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, fry, ok_P_arm, pathlen)
+     >		ntup%resfac, x_P_arm, ok_P_arm, pathlen)
 	  else if (hadron_arm.eq.5 .or. hadron_arm.eq.6) then
 	    call mc_shms(spec%p%P, spec%p%theta, delta_P_arm, x_P_arm,
      >		y_P_arm, z_P_arm, dx_P_arm, dy_P_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, fry, ok_P_arm, pathlen, hadron_arm, use_first_cer)
+     >		ntup%resfac, x_P_arm , ok_P_arm, pathlen, hadron_arm, use_first_cer)
 	  endif
 
 
@@ -1537,6 +1546,13 @@ C DJG For spectrometers to the left of the beamline, need to pass ctheta,-stheta
 	recon%p%yptar = main%RECON%p%yptar
 	recon%p%xptar = main%RECON%p%xptar
 	recon%p%z = main%RECON%p%z
+             if (abs(spec%p%phi-pi/2) .le. 0.5) then ! SHMS = pi/2, HMS = 3pi/2
+	     xtemp = main%target%x*(cos(spec%p%theta) - recon%p%yptar*sin(spec%p%theta))
+	     zhadron = -(recon%p%z+spec%p%offset%y-xtemp)/(sin(spec%p%theta) - recon%p%yptar*cos(spec%p%theta)) ! recon.p.z is really ytgt
+	     else
+	     xtemp = main%target%x*(cos(spec%p%theta) + recon%p%yptar*sin(spec%p%theta))
+	     zhadron = -(recon%p%z+spec%p%offset%y-xtemp)/(-sin(spec%p%theta) - recon%p%yptar*cos(spec%p%theta)) ! recon.p.z is really ytgt
+	     endif
 	recon%p%P = spec%p%P*(1.+recon%p%delta/100.)
 	recon%p%E = sqrt(recon%p%P**2 + Mh2)
 	dx_tmp = recon%p%xptar + spec%p%offset%xptar
@@ -1546,10 +1562,11 @@ C DJG For spectrometers to the left of the beamline, need to pass ctheta,-stheta
      >           dy_tmp,recon%p%theta,recon%p%phi)
 
 ! ... correct for energy loss - use most probable (last flag = 4)
+	  call trip_thru_target (3, zhadron, recon%p%E,
+     >		recon%p%theta, eloss_P_arm, r,Mh,4)
+	  save_mp_eloss(3) = eloss_P_arm
 
 	if (correct_Eloss) then
-	  call trip_thru_target (3, zero, recon%p%E,
-     >		recon%p%theta, eloss_P_arm, r,Mh,4)
 	  recon%p%E = recon%p%E + eloss_P_arm
 	  recon%p%E = max(recon%p%E,sqrt(Mh2+0.000001)) !can get P~0 when calculating hadron momentum-->P<0 after eloss
 	  recon%p%P = sqrt(recon%p%E**2-Mh2)
@@ -1620,6 +1637,7 @@ C	  recon%p%delta = (recon%p%P-spec%p%P)/spec%p%P*100.
 	  z_E_arm = 0.0
 
 	  main%SP%e%z=y_E_arm
+	  main%SP%e%x=x_E_arm
 
 ! ... Monte Carlo through the E arm! if we succeed, continue ...
 ! ... Here's what's passed:
@@ -1642,27 +1660,27 @@ C	  recon%p%delta = (recon%p%P-spec%p%P)/spec%p%P*100.
 	    call mc_hms(spec%e%P, spec%e%theta, delta_E_arm, x_E_arm,
      >		y_E_arm, z_E_arm, dx_E_arm, dy_E_arm, xfp, dxfp, yfp, dyfp,
      >		me2, mc_smear, mc_smear, .false.,
-     >		tmpfact, fry, ok_E_arm, pathlen)
+     >		tmpfact, x_E_arm, ok_E_arm, pathlen)
 	  else if (electron_arm.eq.2) then
 	    call mc_sos(spec%e%P, spec%e%theta, delta_E_arm, x_E_arm,
      >		y_E_arm, z_E_arm, dx_E_arm, dy_E_arm, xfp, dxfp, yfp, dyfp,
      >		me2, mc_smear, mc_smear, .false.,
-     >		tmpfact, fry, ok_E_arm, pathlen)
+     >		tmpfact, x_E_arm, ok_E_arm, pathlen)
 	  else if (electron_arm.eq.3) then
 	    call mc_hrsr(spec%e%P, spec%e%theta, delta_E_arm, x_E_arm,
      >		y_E_arm, z_E_arm, dx_E_arm, dy_E_arm, xfp, dxfp, yfp, dyfp,
      >		me2, mc_smear, mc_smear, .false.,
-     >		tmpfact, fry, ok_E_arm, pathlen)
+     >		tmpfact, x_E_arm, ok_E_arm, pathlen)
 	  else if (electron_arm.eq.4) then
 	    call mc_hrsl(spec%e%P, spec%e%theta, delta_E_arm, x_E_arm,
      >		y_E_arm, z_E_arm, dx_E_arm, dy_E_arm, xfp, dxfp, yfp, dyfp,
      >		me2, mc_smear, mc_smear, .false.,
-     >		tmpfact, fry, ok_E_arm, pathlen)
+     >		tmpfact, x_E_arm, ok_E_arm, pathlen)
 	  else if (electron_arm.eq.5 .or. electron_arm.eq.6) then
 	    call mc_shms(spec%e%P, spec%e%theta, delta_E_arm, x_E_arm,
      >		y_E_arm, z_E_arm, dx_E_arm, dy_E_arm, xfp, dxfp, yfp, dyfp,
      >		me2, mc_smear, mc_smear, .false.,
-     >		tmpfact, fry, ok_E_arm, pathlen, electron_arm, use_first_cer)
+     >		tmpfact, x_E_arm , ok_E_arm, pathlen, electron_arm, use_first_cer)
 	  else if (electron_arm.eq.7 .or. electron_arm .eq. 8) then
              if (abs(spec%p%phi-pi/2) .eq. 10.) then
 	     zhadron = -recon%p%z*(cos(spec%p%theta)/tan(spec%p%theta+recon%p%yptar)+sin(spec%p%theta)) ! recon.p.z is really ytgt
@@ -1672,7 +1690,7 @@ C	  recon%p%delta = (recon%p%P-spec%p%P)/spec%p%P*100.
 	    call mc_calo(spec%e%p, spec%e%theta, delta_e_arm, x_e_arm,
      >		y_e_arm, z_e_arm, dx_e_arm, dy_e_arm, xfp, dxfp, yfp, dyfp,
      >		m2, mc_smear, mc_smear, doing_decay,
-     >		ntup%resfac, frx, fry, ok_e_arm, pathlen, using_tgt_field,
+     >		ntup%resfac, frx, x_E_arm, ok_e_arm, pathlen, using_tgt_field,
      >          zhadron,electron_arm,drift_to_cal)
 	  endif
 	  ntup%resfac=ntup%resfac+tmpfact
@@ -1731,6 +1749,13 @@ C DJG For spectrometers to the left of the beamline, need to pass ctheta,-stheta
 	recon%e%yptar = main%RECON%e%yptar
 	recon%e%xptar = main%RECON%e%xptar
 	recon%e%z = main%RECON%e%z
+             if (abs(spec%e%phi-pi/2) .lt. 0.5) then ! SHMS = pi/2, HMS = 3pi/2
+	     xtemp = main%target%x*(cos(spec%e%theta) - recon%e%yptar*sin(spec%e%theta))
+	     zelec = -(recon%e%z+spec%e%offset%y-xtemp)/(sin(spec%e%theta) - recon%e%yptar*cos(spec%e%theta)) ! recon.e.z is really ytgt
+	     else
+	     xtemp = main%target%x*(cos(spec%e%theta) + recon%e%yptar*sin(spec%e%theta))
+	     zelec = -(recon%e%z+spec%e%offset%y-xtemp)/(-sin(spec%e%theta) - recon%e%yptar*cos(spec%e%theta)) ! recon.e.z is really ytgt
+	     endif
 	recon%e%P = spec%e%P*(1.+recon%e%delta/100.)
 	recon%e%E = recon%e%P
 
@@ -1743,9 +1768,10 @@ C DJG For spectrometers to the left of the beamline, need to pass ctheta,-stheta
 
 ! ... correct for energy loss and correct for Coulomb deceleration
 
-	if (correct_Eloss) then
-	  call trip_thru_target (2, zero, recon%e%E, recon%e%theta,
+	  call trip_thru_target (2, zelec, recon%e%E, recon%e%theta,
      >                              eloss_E_arm, r, Me, 4)
+	  save_mp_eloss(2) =  eloss_E_arm
+	if (correct_Eloss) then
 	  recon%e%E = recon%e%E + eloss_E_arm
 	endif
 c	recon%e%E = recon%e%E + targ%Coulomb%ave

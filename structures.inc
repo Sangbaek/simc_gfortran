@@ -29,12 +29,12 @@
 ! declare structures arm and arm2 first
         type arm
                 sequence
-		real*8		delta, yptar, xptar, z
+		real*8		delta, yptar, xptar, z,x
 	end type 		
 
         type arm2
                 sequence
-		real*8		delta, yptar, xptar, z
+		real*8		delta, yptar, xptar, z,x
 	end type 		
 
 
@@ -96,10 +96,10 @@
 
 ! ... full description of a given particle
 	integer*4 narm_fullfields
-	parameter (narm_fullfields = 8)
+	parameter (narm_fullfields = 9)
 	type arm_full
                 sequence
-		real*8	delta,xptar,yptar,z
+		real*8	delta,xptar,yptar,z,x
 		real*8	theta,phi,E,P
 	end type
 
@@ -117,7 +117,7 @@
 ! IS UPDATED ACCORDINGLY, OR BAD THINGS CAN HAPPEN.
 
 	integer*4 neventfields
-	parameter (neventfields = 28 + 2*narm_fullfields + 3*nCartesianfields)
+	parameter (neventfields = 31 + 2*narm_fullfields + 3*nCartesianfields)
 	type event
                 sequence
 		real*8	Ein
@@ -128,6 +128,7 @@
 		real*8	nu, q, Q2, Trec, W, Mrec
 		real*8	epsilon, theta_pq, theta_tarq,phi_pq,phi_targ
 		real*8  beta, phi_s, phi_c
+                real*8  phicm,thetacm,coscm
 		real*8  zhad,pt2,xbj
 		type (arm_full):: e, p
 		type (Cartesian):: ue, up, uq
@@ -149,7 +150,7 @@
                 real*8 epsilon,theta_pq,theta_tarq,phi_pq,phi_targ,beta
 		real*8 w,t,tmin,q2
                 real*8 pcm,thetacm,phicm,wcm
-		real*8 davejac,johnjac
+		real*8 davejac,johnjac,two_sol_wgt
 		type(event_target)::target
 		type(double_arm):: SP, RECON
 		type(double_arm_FP)::FP

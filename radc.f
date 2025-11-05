@@ -128,6 +128,9 @@
 	real*8 peaked_rad_weight, basicrad_val_reciprocal
 	real*8 basicrad_weight, extrad_phi
 	real*8 max_delta_Trec, ebeam_min, ebeam_max
+c
+	real*8 wthr,sin2th
+c
 	logical force2		!force tail #2 to radiate.
 	logical evsuccess,success
 	type(event_main):: main
@@ -290,6 +293,16 @@ cdg	endif
 	    Egamma_min(1) = 0.
 	    Egamma_max(1) = gen%sumEgen%max - vertex%e%E
 CDJG	    if (ntail.ne.0) Egamma_min(1) = gen.sumEgen.min - vertex.e.E
+	  else if (doing_delta) then
+	     wthr = Mpi0 + mh
+	     sin2th=sin(vertex%e%theta/2)*sin(vertex%e%theta/2)
+	     ebeam_max = (wthr*wthr+2*mp*edge%e%E%max-mp*mp)
+             ebeam_max = ebeam_max/(2*mp-4*edge%e%E%max*sin2th)
+	     ebeam_min = (wthr*wthr+2*mp*edge%e%E%min-mp*mp)
+             ebeam_min = ebeam_min/(2*mp-4*edge%e%E%min*sin2th)
+	    Egamma_min(1) = vertex%Ein - ebeam_max
+	    Egamma_max(1) = vertex%Ein - ebeam_min
+	    Egamma_max(1) = min(Egamma_max(1),edge%Em%max)
 	  endif
 
 ! ... Constrain Egamma<Egamma1_max(from radc_init), and add energy 'slop'
@@ -319,7 +332,7 @@ CDJG	    if (ntail.ne.0) Egamma_min(1) = gen.sumEgen.min - vertex.e.E
 ! ... adjust kinematics and call complete_ev.  If complete_ev fails, return.
 
 	  vertex%Ein = vertex%Ein - Egamma_used(1)
-	  if (debug(5)) write(6,*) 'calling complete_ev from radc'
+	  if (debug(2)) write(6,*) 'calling complete_ev from radc'
 	  call complete_ev(main,vertex,evsuccess)
 	  if (.not.evsuccess) then	!remove previous radiation, try again.
 !!	    if (ntried.le.5000) write(6,'(1x,''COMPLETE_EV1 failed in GENERATE_RAD at event'',i7,''!'')') nevent
@@ -356,6 +369,10 @@ CDJG	    if (ntail.ne.0) Egamma_min(1) = gen.sumEgen.min - vertex.e.E
 
 	if (doing_tail(2) .and. (ntail.eq.0.or.ntail.eq.2)) then
 	  if (debug(5)) write(6,*) 'we are at 2'
+c add mkj
+	  call complete_ev(main,vertex,evsuccess)! added this mkj 7/26.2005
+          if (debug(2))	  write(*,*) ' in radc comp_ev  evsucess = ',evsuccess
+	  if (.not.evsuccess)  return ! added this mkj 7/26.2005
 
 ! ... Find min/max Egammas that will make in into electron acceptance
 
@@ -411,7 +428,11 @@ CDJG	    if (ntail.ne.0) Egamma_min(1) = gen.sumEgen.min - vertex.e.E
 ! RADIATE TAIL #3: the scattered proton tail
 
 	if (rad_proton_this_ev .and. (ntail.eq.0.or.ntail.eq.3)) then
-	  if (debug(5)) write(6,*) 'we are at 3'
+	  if (debug(2)) write(6,*) 'we are at 3'
+c add mkj
+	  call complete_ev(main,vertex,evsuccess)! added this mkj 7/26.2005
+	  if (debug(2)) write(6,*) 'tail 3 in radc comp_ev = ',evsuccess
+	  if (.not.evsuccess)  return ! added this mkj 7/26.2005
 
 ! ... Find min/max Egammas that will make in into hadron acceptance
 

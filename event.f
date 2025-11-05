@@ -122,6 +122,9 @@
 	type(event_main):: main
 	type(event):: vertex, orig
 
+         logical prod_in_cm
+         common /cm_logical/  prod_in_cm
+
 	real*8 nsig_max
 	parameter(nsig_max=3.0e0)      !max #/sigma for gaussian ran #s.
 
@@ -175,6 +178,8 @@ C DJG Note that this means that +fry points down. I will make frx point left.
 
 	call trip_thru_target (1, main%target%z-targ%zoffset, Ebeam, 0.0e0,
      >		main%target%Eloss(1), main%target%teff(1),Me,1)
+	call trip_thru_target (1, main%target%z-targ%zoffset, Ebeam, 0.0e0,
+     >		save_mp_eloss(1), main%target%teff(1),Me,4)
 	if (.not.using_Eloss) main%target%Eloss(1) = 0.0
 	if (using_Coulomb) then
 c	  main%target%Coulomb=targ%Coulomb_constant*(3.-(grnd())**(2./3.))
@@ -260,7 +265,7 @@ C modified 5/15/06 for poinct
 
 ! Generate Hadron Angles (all but H(e,e'p)):
 	if (doing_deuterium.or.doing_heavy.or.doing_pion.or.doing_kaon
-     >         .or.doing_delta.or.doing_semi) then
+     >         .or.(doing_delta .and. .not. prod_in_cm).or.doing_semi) then
 	  vertex%p%yptar=gen%p%yptar%min+grnd()*
      >  	(gen%p%yptar%max-gen%p%yptar%min)
 	  vertex%p%xptar=gen%p%xptar%min+grnd()*
@@ -304,8 +309,20 @@ C modified 5/15/06 for poinct
 
 	call physics_angles(spec%e%theta,spec%e%phi,
      &		vertex%e%xptar,vertex%e%yptar,vertex%e%theta,vertex%e%phi)
-	call physics_angles(spec%p%theta,spec%p%phi,
+c
+	  if ( doing_delta .and. prod_in_cm) then
+	      vertex%thetacm = acos(grnd()*2.0d00-1.0d00)   ! proton theta center of mass (radians)
+	      vertex%phicm=grnd()*2.0d0*pi     ! proton   theta center of mass (radians)
+          else
+	     if ( .not. doing_hyd_elast ) then
+	     if ( .not. doing_phsp ) then
+	      call physics_angles(spec%p%theta,spec%p%phi,
      &		vertex%p%xptar,vertex%p%yptar,vertex%p%theta,vertex%p%phi)
+c	write(*,*) ' calc proton angle = ',vertex%p%theta,vertex%p%phi
+c     >    ,vertex%p%theta*57.3,vertex%p%phi*57.3
+	     endif
+	     endif
+          endif
 
 
 ! Generate Fermi Momentum and Em for A(e,e'pi) and A(e,e'K). 
@@ -360,13 +377,16 @@ C modified 5/15/06 for poinct
 	if (debug(3)) write(6,*)'gen: calling comp_ev with false, main, vertex'
 	if (debug(3)) write(6,*)'gen: Ein, E =',vertex%Ein,vertex%e%E
 
-	call complete_ev(main,vertex,success)
+c mkj commented out 7/26/2005
+c        call complete_ev(main,vertex,success)
+	if ( .not. using_rad) call complete_ev(main,vertex,success)! added this
 
 
 	main%sigcc = 1.0
 
 	if (debug(2)) write(6,*)'gen: initial success =',success
-	if (.not.success) goto 100
+c	if (.not.success) goto 100
+	if (.not.success .and. .not. using_rad) goto 100 ! added this mkj 
 
 ! ........ temporary storage of Trec for generated event
 
@@ -377,8 +397,40 @@ C modified 5/15/06 for poinct
 ! false.  generate_rad also set orig kinematics, and cuts on Em/Pm.
 ! If not using_rad, must do these here.
 
+
 	if (using_rad) then
+          vertex%ue%x = sin(vertex%e%theta)*cos(vertex%e%phi)
+	  vertex%ue%y = sin(vertex%e%theta)*sin(vertex%e%phi)
+	  vertex%ue%z = cos(vertex%e%theta)
+          if ( doing_hyd_elast) then
+	  vertex%e%P = spec%e%P
+	  vertex%e%E = spec%e%P
+	  vertex%e%delta = 100.*(vertex%e%P-spec%e%P)/spec%e%P
+          endif
+          if ( doing_hyd_elast .or. doing_delta) then
+	  vertex%p%P = spec%p%P
+	  vertex%p%E = sqrt(vertex%p%P**2 + Mh2)
+	  vertex%p%delta = 100.*(vertex%p%P-spec%p%P)/spec%p%P
+          endif
+          if ( (doing_delta .and. prod_in_cm) .or.doing_hyd_elast)  then          
+	     vertex%p%theta=spec%p%theta
+	     vertex%p%phi=spec%p%phi
+          endif
+	  vertex%up%x = sin(vertex%p%theta)*cos(vertex%p%phi)
+	  vertex%up%y = sin(vertex%p%theta)*sin(vertex%p%phi)
+	  vertex%up%z = cos(vertex%p%theta)
+          call spectrometer_angles(spec%p%theta,spec%p%phi,vertex%p%xptar,vertex%p%yptar,vertex%p%theta,vertex%p%phi)
+   	call trip_thru_target (2, main%target%z-targ%zoffset, vertex%e%E,
+     >		vertex%e%theta, main%target%Eloss(2), main%target%teff(2),Me,1)
+	call trip_thru_target (3, main%target%z-targ%zoffset, vertex%p%E,
+     >		vertex%p%theta, main%target%Eloss(3), main%target%teff(3),Mh,1)
+	if (.not.using_Eloss) then
+	  main%target%Eloss(2) = 0.0
+	  main%target%Eloss(3) = 0.0
+	endif
+	  call radc_init_ev(main,vertex)  ! added this mkj 7/26.2005
 	  call generate_rad(main,vertex,orig,success)
+
 	  if (debug(2)) write(6,*)'gen: after gen_rad, success =',success
 	else
 	  success = .true.
@@ -388,13 +440,9 @@ C modified 5/15/06 for poinct
      >		 vertex%Pm .ge. VERTEXedge%Pm%min .and. 
      >		 vertex%Pm .le. VERTEXedge%Pm%max)
 	  if (success) then
-c	    do i = 1, neventfields
-c	      orig.all(i) = vertex.all(i)
-c	    enddo
-	     orig = vertex
+	     orig = vertex	     
 	  endif
 	endif
-
 
 C DJG need to decay the rho here before we begin transporting through the
 C DJG spectrometer
@@ -426,11 +474,18 @@ C DJG spectrometer
 	real*8 krel,krelx,krely,krelz
 	real*8 MM
 
-	real*8 Ehad2,E_rec
+	real*8 Ehad2,Ehad1,E_rec
+	logical delta_sol1,delta_sol2
 	real*8 W2
 	real*8 grnd		!random # generator.
-
 	logical success
+	real*8 gamma_cm,beta_cm,cost,e_p_cm,p_p_cm,plong
+c
+c
+	 logical calc_thpq_ok
+         logical prod_in_cm
+         common /cm_logical/  prod_in_cm
+
 	type(event_main):: main
 	type(event)::	vertex
 
@@ -451,6 +506,7 @@ C DJG spectrometer
 
 	success = .false.
 	main%jacobian = 1.0
+	if (debug(2)) write(*,*) ' in complete_ev'
 
 ! ... unit vector components of outgoing e,p
 ! ... z is DOWNSTREAM, x is DOWN and y is LEFT looking downstream.
@@ -575,6 +631,14 @@ c	  endif
 
 	  vertex%Pm = pfer	!vertex%Em generated at beginning.
 	  vertex%Mrec = targ%M - targ%Mtar_struck + vertex%Em
+         if ( doing_delta .and. prod_in_cm ) then
+	      call calc_kin_in_cm(mrecoil,vertex%thetacm,vertex%phicm,vertex%e%E,vertex%Ein,vertex%e%theta,
+     >          vertex%e%phi,vertex%p%E,vertex%p%P,vertex%p%theta,vertex%p%phi,calc_thpq_ok)
+	     vertex%p%delta = 100.*(vertex%p%P-spec%p%P)/spec%p%P
+	      if ( .not. calc_thpq_ok ) return
+              call spectrometer_angles(spec%p%theta,spec%p%phi,vertex%p%xptar,vertex%p%yptar,vertex%p%theta,vertex%p%phi)
+	      main%two_sol_wgt = 1.0
+         else
 	  a = -1.*vertex%q*(vertex%uq%x*vertex%up%x+vertex%uq%y*vertex%up%y+vertex%uq%z*vertex%up%z)
 	  b = vertex%q**2
 	  c = vertex%nu + targ%M
@@ -617,18 +681,65 @@ c	  endif
 
 	  radical = QB**2 - 4.*QA*QC
 	  if (radical.lt.0) return
+          W2 = targ%M**2 + 2.*targ%M*vertex%nu - vertex%Q2
+	  if ( W2 .lt. (mpi0+mp)**2 ) then
+	     if (debug(2)) write(*,*) 'W2 below threshold  Q2 = ',vertex%Q2
+	     return
+          endif
 	  vertex%p%E = (-QB - sqrt(radical))/2./QA
 	  Ehad2 = (-QB + sqrt(radical))/2./QA
 
-	  if (doing_delta) then		!choose one of the two solutions.
-!	    write(6,*) ' e1, e2=',vertex%p%E,Ehad2
-	    if (grnd().gt.0.5) vertex%p%E = Ehad2
+	  if (doing_delta ) then		!choose one of the two solutions.
+c check which passes delta acceptance
+c   if both pick one randomly
+	     Ehad1 = vertex%p%E
+             delta_sol1 = .false.
+             delta_sol2 = .false.
+	     main%two_sol_wgt = 0.0	   
+	    if ( Ehad1 .ge. edge%p%E%min .and. Ehad1 .le.  edge%p%E%max) then
+	       main%two_sol_wgt = 1.0	   
+	       vertex%p%E = Ehad1
+	       delta_sol1 = .true.
+            endif
+	    if ( Ehad2 .ge. edge%p%E%min .and. Ehad2 .le.  edge%p%E%max) then
+	       main%two_sol_wgt = 1.0	   
+	       vertex%p%E = Ehad2
+	       delta_sol2 = .true.
+            endif
+            if ( delta_sol1 .and. delta_sol2) then
+	       main%two_sol_wgt = 2.0	   
+	       if (grnd().gt.0.5) then
+		  vertex%p%E = Ehad1
+               else
+		  vertex%p%E = Ehad2
+               endif
+            endif
+	    if ( main%two_sol_wgt .eq. 0) return
+c pick random ( this was the old method)
+c            vertex.p.E = Ehad1	    
+c	    if (grnd().gt.0.5) 	vertex.p.E = Ehad2
+        	  gamma_cm= sqrt(vertex%q*vertex%q+w2)/sqrt(w2)
+	          beta_cm = vertex%q/ sqrt(vertex%q*vertex%q+w2)
+         	  vertex%p%P = sqrt(vertex%p%E**2 - Mh2)
+                  cost=vertex%uq%x*vertex%up%x+vertex%uq%y*vertex%up%y+vertex%uq%z*vertex%up%z
+                  e_p_cm= gamma_cm*(vertex%p%e-beta_cm*vertex%p%p*cost)
+                  p_p_cm=sqrt(e_p_cm*e_p_cm- mh2)
+                  plong=gamma_cm*(vertex%p%p*cost-beta_cm*vertex%p%e)
+                  if ( p_p_cm .le. ABS(plong) .OR. e_p_cm .LT.  sqrt(mh2)) then
+	            vertex%coscm = -1.1
+		    vertex%thetacm = -1000.
+c		    write(*,*) ' Cos theta cm is unphysical'
+		    return
+                   else
+	            vertex%coscm = plong/p_p_cm
+		    vertex%thetacm = acos(vertex%coscm)
+	         endif
 	  else				!verify that 'backwards' soln. is no good.
-	    if (Ehad2.gt.edge%p%E%min .and. Ehad2.lt.edge%p%E%max .and. ntried.le.5000) then
-	      write(6,*) 'The low-momentum solution to E_hadron is within the spectrometer generation'
-	      write(6,*) 'limits.  If it is in the acceptance, Its the end of the world as we know it!!!'
-	      write(6,*) 'E_hadron solns=',vertex%p%E,Ehad2
-	    endif
+c	    if (Ehad2.gt.edge.p.E.min .and. Ehad2.lt.edge.p.E.max .and. ntried.le.5000) then
+c	      write(6,*) 'The low-momentum solution to E_hadron is within the spectrometer generation'
+c	      write(6,*) 'limits.  If it is in the acceptance, Its the end of the world as we know it!!!'
+c	      write(6,*) 'E_hadron solns=',vertex.p.E,Ehad2
+c	    endif
 	  endif
 
 	  E_rec=c-vertex%p%E	!energy of recoil system
@@ -637,6 +748,7 @@ c	  endif
 	  if (vertex%p%E.le.Mh) return
 	  vertex%p%P = sqrt(vertex%p%E**2 - Mh2)
 	  vertex%p%delta = (vertex%p%P - spec%p%P)*100./spec%p%P
+          endif ! doing_delta and prod_in_cm
 !	write(6,*) 'p,e=',vertex%p%P,vertex%p%E
 
 	elseif (doing_rho) then
@@ -695,6 +807,13 @@ c	  endif
 	  py =  vertex%up%x
 	  pz =  vertex%up%z
 
+c	  qx =  vertex%uq%x		!convert to 'replay' coord. systemc
+c	  qy =  vertex%uq%y
+c	  qz =  vertex%uq%z
+c	  px =  vertex%up%x
+c	  py =  vertex%up%y
+c	  pz =  vertex%up%z
+
 	  dummy=sqrt((qx**2+qy**2)*(qx**2+qy**2+qz**2))
 	  new_x_x = -qx*qz/dummy
 	  new_x_y = -qy*qz/dummy
@@ -709,7 +828,17 @@ c	  endif
 	  p_new_y = px*new_y_x + py*new_y_y + pz*new_y_z
 
 	  main%phi_pq = atan2(p_new_y,p_new_x)		!atan2(y,x)=atan(y/x)
+c atan2 is principal value of p_new_x + i * p_new_y
+c  atan2 is from 0 to pi/2 when p_new_y>0,p_new_x>0
+c  atan2 is from pi/2 to pi when p_new_y>0,p_new_x<0
+c  atan2 is from 0 to -pi/2 when p_new_y<0,p_new_x>0
+c  atan2 is from -pi/2 to -pi when p_new_y<0,p_new_x<0
+c   atan2 = 0 if p_new_y==0 p_new_x>0
+c   atan2 = pi if p_new_y==0 p_new_x<0
+c   atan2 = pi/2 if p_new_x=0
+c
 	  if (main%phi_pq.lt.0.e0) main%phi_pq=main%phi_pq+2.*pi
+	  if ( .not. prod_in_cm) vertex%phicm = main%phi_pq
 !	  if (p_new_y.lt.0.) then
 !	    main.phi_pq = 2*pi - main.phi_pq
 !	  endif
@@ -955,7 +1084,7 @@ C DJG Since we generate rho's in 4pi (in spherical angles) we don't need no
 C DJG stinkin' Jacobian!
 
 	if (doing_heavy .or. doing_pion .or. doing_kaon .or. 
-     >      doing_delta .or. doing_semi) then
+     >      (doing_delta .and. .not. prod_in_cm) .or. doing_semi) then
 	  r = sqrt(1.+vertex%p%yptar**2+vertex%p%xptar**2)
 	  main%jacobian = main%jacobian / r**3		 !1/cos**3(theta-theta0)
 	endif
@@ -980,9 +1109,13 @@ C DJG stinkin' Jacobian!
 
 ! Initialize parameters necessary for radiative corrections
 
-	call radc_init_ev(main,vertex)
+c	call radc_init_ev(main,vertex)
 
 ! Success code
+	if (debug(2)) then
+	  write(6,*)'comp_ev: W =',main%W
+	  write(6,*)'comp_ev: Q2 =',main%q2
+	endif
 
 	success = .true.
 	if(debug(2)) write(6,*)'comp_ev: at end...'
@@ -1005,6 +1138,14 @@ C DJG stinkin' Jacobian!
 	real*8 oop_x,oop_y
 	real*8 mm,mmA,mm2,mmA2,t
 
+c
+	real*8 gamma_cm,beta_cm,cost,p_p_cm,e_p_cm,plong
+	real*8 tempang,z_q(4),z_p(4),z_b(4),tnorm(4)
+	real*8 vangle,vdotm
+c
+	real*8 e_dx_tmp,e_dy_tmp
+	real*8 p_dx_tmp,p_dy_tmp
+
 	logical success
 	type(event)::	recon
 
@@ -1026,11 +1167,10 @@ C DJG stinkin' Jacobian!
 ! ... unit vector components of outgoing e,p
 ! ... z is DOWNSTREAM, x is DOWN and y is LEFT looking downstream.
 
-C Ebeam_vertex_ave has been shifted to account for Coulomb effects
-C In general, the Hall C analyzer does not correct for this
-C If you do NOT apply an energy shift in the ENGINE to account
-C for Coulomb corrections, make sure the line below is NOT commented out.
-	recon%Ein = Ebeam_vertex_ave - targ%Coulomb%ave
+c mkj 
+	recon%Ein =  Ebeam
+	if (correct_Eloss) recon%Ein = Ebeam - save_mp_eloss(1)
+c
 
 	if (debug(4)) write(6,*)'comp_rec_ev: at 1'
 	recon%ue%x = sin(recon%e%theta)*cos(recon%e%phi)
@@ -1226,6 +1366,44 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
 	   recon%theta_tarq = acos((qx*targx+qy*targy+qz*targz)/dummy)
 	endif !polarized-target specific stuff
 
+c
+	e_dx_tmp = recon%e%xptar +  spec%e%offset%xptar
+	e_dy_tmp = recon%e%yptar +  spec%e%offset%yptar
+	tempang=1./sqrt(1.+(e_dx_tmp)**2+(e_dy_tmp)**2)
+	z_q(1) = -recon%e%P*tempang*e_dx_tmp
+	z_q(2) = -recon%e%P*tempang*(e_dy_tmp*spec%e%cos_th+spec%e%sin_th)
+        z_q(3) = recon%Ein - recon%e%P*tempang*(-e_dy_tmp*spec%e%sin_th+spec%e%cos_th)
+	z_q(4) = recon%Ein - recon%e%e
+	z_b(1) = 0.
+	z_b(2) = 0.
+	z_b(3) = recon%Ein
+	z_b(4) = recon%Ein
+	p_dx_tmp = recon%p%xptar +  spec%p%offset%xptar
+	p_dy_tmp = recon%p%yptar +  spec%p%offset%yptar
+        tempang=1./sqrt(1.+(p_dx_tmp)**2+(p_dy_tmp)**2)
+	z_p(1) = recon%p%P*tempang*p_dx_tmp
+        z_p(2) = recon%p%P*tempang*(p_dy_tmp*spec%p%cos_th-spec%p%sin_th)
+	z_p(3) = recon%p%P*tempang*(p_dy_tmp*spec%p%sin_th+spec%p%cos_th)
+	z_p(4) = recon%p%e
+	call crossm(z_q,z_b,tnorm)
+	if ( vdotm(tnorm,z_p,3) .ge. 0) then
+	   recon%phicm = vangle(z_q,z_b,z_q,z_p)
+	else
+	   recon%phicm = 2.*3.1415-vangle(z_q,z_b,z_q,z_p)
+        endif
+
+c
+	  gamma_cm= sqrt(recon%q*recon%q+recon%w*recon%w)/recon%w
+	  beta_cm = recon%q/ sqrt(recon%q*recon%q+recon%w*recon%w)
+          cost=recon%uq%x*recon%up%x+recon%uq%y*recon%up%y+recon%uq%z*recon%up%z
+          e_p_cm= gamma_cm*(recon%p%e-beta_cm*recon%p%p*cost)
+          p_p_cm=sqrt(e_p_cm*e_p_cm- mh2)
+          plong=gamma_cm*(recon%p%p*cost-beta_cm*recon%p%e)
+          if ( p_p_cm .le. ABS(plong) .OR. e_p_cm .LT.  sqrt(mh2)) then
+	     recon%coscm = -1.1
+          else
+	     recon%coscm = plong/p_p_cm
+	  endif
 	if (debug(2)) then
 	  write(6,*)'comp_rec_ev: nu =',recon%nu
 	  write(6,*)'comp_rec_ev: Q2 =',recon%Q2
@@ -1266,8 +1444,21 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
           t = recon%Q2 - Mh2
      >      + 2*(recon%nu*recon%p%E - recon%p%P*recon%q*cos(recon%theta_pq))
 	  ntup%mm = mm
+	  ntup%mm2 = mm2
 	  ntup%mmA = mmA
 	  ntup%t = t
+c
+	  gamma_cm= sqrt(recon%q*recon%q+recon%w*recon%w)/recon%w
+	  beta_cm = recon%q/ sqrt(recon%q*recon%q+recon%w*recon%w)
+          cost=recon%uq%x*recon%up%x+recon%uq%y*recon%up%y+recon%uq%z*recon%up%z
+          e_p_cm= gamma_cm*(recon%p%e-beta_cm*recon%p%p*cost)
+          p_p_cm=sqrt(e_p_cm*e_p_cm- mh2)
+          plong=gamma_cm*(recon%p%p*cost-beta_cm*recon%p%e)
+          if ( p_p_cm .le. ABS(plong) .OR. e_p_cm .LT.  sqrt(mh2)) then
+	     recon%coscm = -1.1
+          else
+	     recon%coscm = plong/p_p_cm
+	  endif
 	endif
 
 	if(doing_semi.or.doing_rho) then
@@ -1306,7 +1497,12 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
 	real*8		a, b, r, frac, peepi, peeK, peedelta, peerho, peepiX
 	real*8		survivalprob, semi_dilution
 	real*8		weight, width, sigep, deForest, tgtweight
+	real*8    sigMott
+	integer ireact
 	logical		force_sigcc, success
+         logical prod_in_cm
+         common /cm_logical/  prod_in_cm
+
 	type(event_main):: main
 	type(event)::	vertex, vertex0, recon
 
@@ -1409,7 +1605,22 @@ CDJG Calculate the "Collins" (phi_pq+phi_targ) and "Sivers"(phi_pq-phi_targ) ang
 	  endif
 
 	elseif (doing_delta) then
-	  main%sigcc = peedelta(vertex,main)	!Need new xsec model.
+c	  main%sigcc = peedelta(vertex,main)	!Need new xsec model.
+	   if (debug(2)) write(*,*) " call before maid = " ,main%q2,main%w,vertex%Ein,vertex%e%E,vertex%thetacm,vertex%phicm
+	   if ( main%w  > Mpi0 + mh ) then
+	      ireact=1 ! pi0 p
+	      if (abs(mrecoil-939.57) <10 ) ireact=3
+	      if (abs(mrecoil) <10 ) ireact=100
+	      
+	      if (main%w < 2000 .and. ireact .ne. 100) then
+                call  get_xn_maid_07(main%q2,main%w,vertex%Ein,vertex%e%E,vertex%thetacm,vertex%phicm,main%sigcc,ntup%sigcm,ireact)
+	      else
+		 call get_xn_vcs(vcs_xs_file,main%q2,main%w,vertex%Ein
+     > ,vertex%e%E,vertex%e%theta,vertex%thetacm,vertex%phicm,main%sigcc,ntup%sigcm)
+		     main%sigcc=main%sigcc*sigMott(vertex%e%E,vertex%e%theta,main%q2)
+		     ntup%sigcm=ntup%sigcm*sigMott(vertex%e%E,vertex%e%theta,main%q2)
+              endif
+           endif
 	  main%sigcc_recon = 1.0
 
 	elseif (doing_rho) then
@@ -1455,6 +1666,9 @@ C If using Coulomb cirrections, include focusing factor
 
 	main%weight = main%SF_weight*main%jacobian*main%gen_weight*main%sigcc
 	main%weight = main%weight * tgtweight	!correct for #/nucleons involved
+	if ( doing_delta .and. .not. prod_in_cm ) then
+            main%weight=main%weight*main%two_sol_wgt
+         endif
 	if ((doing_kaon.or.doing_semika) .and. .not.doing_decay) 
      >		main%weight = main%weight*survivalprob
 	if (debug(5))write(6,*) 'gen_weight = ',main%gen_weight,
@@ -1542,5 +1756,146 @@ C If using Coulomb cirrections, include focusing factor
 	y_event = y/cos_dtheta	!projected to plane perp. to spectrometer.
 	if (y_event .lt. y0) dy = -dy
 
+	return
+	end
+c
+       subroutine crossm(a,b,c)
+       real*8  a(4),b(4),c(4)
+       c(1)=a(2)*b(3)-a(3)*b(2)
+       c(2)=a(3)*b(1)-a(1)*b(3)
+       c(3)=a(1)*b(2)-a(2)*b(1)
+       return
+       end
+c   
+       real*8 function vangle(a,b,c,d)
+       real*8 a(4),b(4),c(4),d(4),xm,ym,vcos
+       real*8 x(4),y(4),pi,vdotm
+       pi=acos(-1.0)
+       call crossm(a,b,x)
+       call crossm(c,d,y)
+       xm=vdotm(x,x,3)
+       ym=vdotm(y,y,3)
+       if(xm.gt.0.0 .and. ym.gt.0.0) then
+         vcos=vdotm(x,y,3)/sqrt(xm)/sqrt(ym)
+         if(abs(vcos).lt.1.0) then
+            vangle=acos(vcos)
+         else
+            if(vcos.ge.1.0)  vangle=0
+            if(vcos.le.-1.0)  vangle=pi
+         endif 
+       else
+         vangle=0
+       endif
+       return
+       end
+c
+       real*8 function vdotm(a,b,n)
+       real*8 a(4),b(4),s
+       integer i,n
+       s=0.0
+       do i=1,3
+         s=s+a(i)*b(i)
+       enddo
+       if(n.eq.4) s=s-a(n)*b(n)
+       vdotm=s
+       return
+       end
+c
+	subroutine calc_kin_in_cm(mundet,thcm_det,phicm_det,eprime,eb,th_e,phi_e
+     >     ,e_det_lab,pdet_lab_mag,theta_p,phi_p,calc_thpq_ok)
+c
+	implicit none
+c
+	real*8 omega,q2,w,w2,th_e,phi_e,eb,eprime,thcm_det,phicm_det
+	real*8 e_undet_cm,p_undet_cm,pdet_cm_mag,edet_cm
+	real*8 cthcm_det,sthcm_det,pdet_cm_perp,pdet_cm_para
+	real*8 E_det_lab,pdet_lab_para,pdet_lab_perp,pdet_lab_mag
+	real*8 thdetlab,qvec,gamma,beta,mundet
+	real*8 q(3),pdet_cm(3),pdet_lab(3),vdm,vtt(3),v2(3),theta_p,phi_p,theta_q,phi_q
+	logical calc_thpq_ok
+	real*8 central_phi_spec_e,mdet
+c
+	include 'constants.inc'
+c
+       calc_thpq_ok = .false.
+c
+c assume that the target is proton
+       omega=eb-eprime
+       q2 = 4*eprime*eb*sin(th_e/2)*sin(th_e/2)
+       w2= 2*mp*omega-q2+mp*mp
+      if ( w2 .gt. 0) then
+	 w = sqrt(w2)
+	 else
+	return
+      endif
+      qvec=sqrt(q2+omega*omega)
+      beta=qvec/(mp+omega)
+      gamma=(mp+omega)/w
+c
+	mdet=mp
+      if ( abs(mundet-939.56) .lt. 10)  mdet = 139.57
+c
+c
+      if ( w2 .ge. (mundet+mdet)*(mundet+mdet)) then
+      e_undet_cm=(w*w-mdet*mdet+mundet*mundet)/2./w
+      p_undet_cm=sqrt(e_undet_cm*e_undet_cm-mundet*mundet)
+      pdet_cm_mag=p_undet_cm
+      edet_cm=sqrt(pdet_cm_mag*pdet_cm_mag+mdet*mdet)
+c
+      central_phi_spec_e = pi/2.	
+      if ( phi_e .gt. pi)  central_phi_spec_e = 3*pi/2.
+       phi_e = phi_e - central_phi_spec_e ! need to rotate to system with +x points to SOS,  +y points up, +z along beam
+c
+      q(1) = -eprime*sin(th_e)*cos(phi_e) ! x component
+      q(2) = -eprime*sin(th_e)*sin(phi_e) ! y component
+      q(3) = eb-eprime*cos(th_e)            ! z component
+      theta_q = acos(q(3)/qvec)
+      if ( q(1) .ne. 0) then
+          phi_q=atan(q(2)/q(1))
+      else
+          phi_q = 0.
+      endif
+      phi_q = phi_q + pi
+c
+      cthcm_det     = cos( thcm_det )
+      sthcm_det     = sin( thcm_det )
+      pdet_cm_perp  = pdet_cm_mag* sthcm_det
+      pdet_cm_para  = pdet_cm_mag* cthcm_det          
+      E_det_lab     = gamma * (Edet_cm + beta*pdet_cm_para)
+      pdet_lab_para = gamma * (pdet_cm_para + beta*Edet_cm)
+      pdet_lab_perp = pdet_cm_perp
+      pdet_lab_mag      = sqrt( pdet_lab_perp**2 + pdet_lab_para**2 )
+      thdetlab      = atan2( pdet_lab_perp, pdet_lab_para )
+c
+      pdet_cm(1) = pdet_cm_mag*sthcm_det*cos(phicm_det)
+      pdet_cm(2) = pdet_cm_mag*sthcm_det*sin(phicm_det)
+      pdet_cm(3) = pdet_cm_mag*cthcm_det
+      pdet_lab(1) = pdet_cm(1)
+      pdet_lab(2) = pdet_cm(2)
+      pdet_lab(3) = gamma*(beta*edet_cm + pdet_cm_para)
+c  rotate in xz plane
+      vdm = sqrt( q(1)*q(1) + q(3)*q(3) )
+      vtt(1)= pdet_lab(1)*q(3)/vdm+pdet_lab(3)*q(1)/vdm
+      vtt(2) = pdet_lab(2)
+      vtt(3)= -pdet_lab(1)*q(1)/vdm+pdet_lab(3)*q(3)/vdm
+c  rotate in yz plane
+      vdm = sqrt( q(2)*q(2) + q(3)*q(3) )
+      v2(1) = vtt(1)                          ! pdet_lab*sin(thp)*cos(phip)
+      v2(2)= vtt(2)*q(3)/vdm+vtt(3)*q(2)/vdm  ! pdet_lab*sin(thp)*sin(phip)
+      v2(3)= -vtt(2)*q(2)/vdm+vtt(3)*q(3)/vdm ! pdet_lab*cos(thp)
+c
+      theta_p = acos(v2(3)/pdet_lab_mag)
+      if ( v2(1) .ne. 0) then
+        phi_p = atan(v2(2)/v2(1))
+      else
+        phi_p = 0.
+      endif
+      phi_p = phi_p + pi ! since y-comp negative
+      phi_p = phi_p + central_phi_spec_e ! rotate into the SIMC beam system +x points down,+y points to SOS,+z along beam.
+      phi_e = phi_e + central_phi_spec_e ! rotate into the SIMC beam system +x points down,+y points to SOS,+z along beam.
+c
+      calc_thpq_ok = .true.
+      endif
+c
 	return
 	end

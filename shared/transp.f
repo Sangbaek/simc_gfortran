@@ -123,9 +123,9 @@ C in MEs (if they exist)
 
 	if (length(spectr,class).gt.0.01 .and.
      >		abs(length(spectr,class)-zd).gt.0.01 ) then
-	    write(6,*) 'PROBLEM WITH TRANSFORMATION #',class,' for spectrometer #',spectr
-	    write(6,*) 'Central path length passed to transp =',zd
-	    write(6,*) 'But the comments say that the length =',length(spectr,class)
+c	    write(6,*) 'PROBLEM WITH TRANSFORMATION #',class,' for spectrometer #',spectr
+c	    write(6,*) 'Central path length passed to transp =',zd
+c	    write(6,*) 'But the comments say that the length =',length(spectr,class)
 	endif
 
 C Check for decay.

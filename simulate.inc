@@ -42,6 +42,7 @@
 
 	real*8	Mh, Mh2, Mh2_final	!mh,mh2 are INITIAL hadron mass(**2)
 	real*8	Ebeam, dEbeam, Ebeam_vertex_ave, genvol, genvol_inclusive
+	real*8 Mrecoil
 	real*8	luminosity, targetfac, normfac
 	real*8	wtcontribute, dE_edge_test, Egamma_gen_max
 	real*8  pt_b_param,sigc_kin_min,sigc_kin_max,sigc_kin_ind
@@ -63,6 +64,7 @@
 	character base*40
 	character extra_dbase_file*60
 	character tgt_field_file*60
+	character vcs_xs_file*5
 	logical using_E_arm_montecarlo, using_P_arm_montecarlo
 	logical doing_phsp, using_rad, hard_cuts
 	logical doing_hyd_elast, doing_deuterium, doing_heavy
@@ -72,14 +74,14 @@
 	logical using_cit_generation, using_Coulomb, using_Eloss
 	logical correct_Eloss, correct_raster,do_fermi
 	logical using_tgt_field
-	integer*4 electron_arm, hadron_arm, use_first_cer
+	integer*4 electron_arm, hadron_arm, use_first_cer,doing_prod_in_cm
 	real*8 transparency
 	logical use_benhar_sf
 	character*80 random_state_file
 	integer*4 random_seed
 
 
-	common /gnrl/   Mh, Mh2, Mh2_final, Ebeam, dEbeam, Ebeam_vertex_ave,
+	common /gnrl/   Mrecoil,Mh, Mh2, Mh2_final, Ebeam, dEbeam, Ebeam_vertex_ave,
      >    genvol, genvol_inclusive, luminosity, targetfac,
      >    normfac, wtcontribute, dE_edge_test, Egamma_gen_max,pt_b_param,
      >    sigc_kin_min,sigc_kin_max,sigc_kin_ind,targ_Bangle, targ_Bphi, targ_pol, 
@@ -94,8 +96,8 @@
      >    doing_semipi, doing_semika, doing_hplus, which_kaon,
      >    which_pion, using_cit_generation, using_Coulomb, using_Eloss,
      >    correct_Eloss, correct_raster, do_fermi,using_tgt_field,
-     >    electron_arm, hadron_arm, use_first_cer,
-     >    transparency, use_benhar_sf, random_state_file, random_seed
+     >    electron_arm, hadron_arm, use_first_cer,doing_prod_in_cm,
+     >    transparency, use_benhar_sf, random_state_file, random_seed,vcs_xs_file
 
 ! ........ note: make these first two parameters at least ONE BIGGER than the actual dimensions you want to read in
 	integer*4 ntheorymax,nrhoPmmax
@@ -149,7 +151,7 @@ C Structure for variables that we want to available to the ntuple.
 		real*8 radphot, radarm
 		real*8 resfac
 		real*8 sigcm
-		real*8 krel,mm,mmA,t,dilu
+		real*8 krel,mm,mmA,t,dilu,mm2
 		real*8 sigcm1, sigcm2, sigcm3, sigcm4
 		real*8 xfermi, yfermi
 		real*8 rhomass, rhotheta
@@ -201,3 +203,11 @@ C momentum distribution (nump=#/points, pval=p, mprob=integral (p^2 f(p) dp)
 
 ! ... and some variable blocks of general interest defined in external files
 	include 'target.inc'
+
+
+	integer pad_1x_lo_num,pad_1x_hi_num,pad_2x_lo_num,pad_2x_hi_num
+	common /shms_scin_x_padcut/ pad_1x_lo_num,pad_1x_hi_num
+     >    ,pad_2x_lo_num,pad_2x_hi_num
+c
+	real*8 save_mp_eloss(3)
+	common /save_eloss/ save_mp_eloss
