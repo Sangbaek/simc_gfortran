@@ -1,1 +1,0 @@
-coin_pi0_kin2a_scincut_ytarcorr3.inp

@@ -1,5 +1,0 @@
-#!/bin/tcsh
-
-simc << endofinput >! ./runout/$1.out
-$1
-endofinput
