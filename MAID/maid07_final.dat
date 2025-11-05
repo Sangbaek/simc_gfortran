@@ -1,0 +1,67 @@
+ ***********  Current solution is  maid07_final   ************
+  0  0  2  0   JRHOFORM(0,1), JOMEFORM(0,1), D13mode(1,2), Dispersion (0,1)
+         1  XMP33        1.00000   ** fixed **
+         2  XEP33        1.00000   ** fixed **
+         3  X1P11p       1.00000     0.05410
+         4  X1S11p       1.00000     0.01108
+         5  X3D13p       1.00000   ** fixed **
+         6  X1D13p       1.00000     0.00501
+         7  X1S2p        1.00000   ** fixed **
+         8  X3F15p       1.          0.03204
+         9  X1F15p       1.          0.01598
+        10  X1S31        1.00000   ** fixed **
+        11  X3D33        1.00000   ** fixed **
+        12  X1D33        1.00000   ** fixed **
+        13  X1P13p       1.00000   ** fixed **
+        14  X3P13p       1.00000   ** fixed **
+        15  X1D15p       1.00000   ** fixed **
+        16  X3D15p       1.00000   ** fixed **
+        17  X1P31        1.00000   ** fixed **
+        18  X1F35        1.00000   ** fixed **
+        19  X3F35        1.00000   ** fixed **
+        20  X1F37        1.00000   ** fixed **
+        21  X3F37        1.00000   ** fixed **
+        22  X1P11n       1.00000   ** fixed **
+        23  X1S11n       1.00000   ** fixed **
+        24  X3D13n       1.00000   ** fixed **
+        25  X1D13n       1.00000   ** fixed **
+        26  X1S2n        1.00000   ** fixed **
+        27  X3F15n       1.00000   ** fixed **
+        28  X1F15n       1.00000   ** fixed **
+        29  X1P13n       1.00000   ** fixed **
+        30  X3P13n       1.00000   ** fixed **
+        31  X1D15n       1.00000   ** fixed **
+        32  X3D15n       1.00000   ** fixed **
+        33  XSP33        1.00000   ** fixed **
+        34  XSP11p       1.00000   ** fixed **
+        35  XSS11p       1.         0.02444
+        36  XSD13p       1.         0.01292
+        37  XSS2p        1.00000   ** fixed **
+        38  XSF15p       1.         0.00288
+        39  XSS31        1.00000   ** fixed **
+        40  XSD33        1.00000   ** fixed **
+        41  XSP13p       1.00000   ** fixed **
+        42  XSD15p       1.00000   ** fixed **
+        43  XSP31        1.00000   ** fixed **
+        44  XSF35        1.00000   ** fixed **
+        45  XSF37        1.00000   ** fixed **
+        46  XSP11n       1.00000   ** fixed **
+        47  XSS11n       1.00000   ** fixed **
+        48  XSD13n       1.00000   ** fixed **
+        49  XSS2n        1.00000   ** fixed **
+        50  XSF15n       1.00000   ** fixed **
+        51  XSP13n       1.00000   ** fixed **
+        52  XSD15n       1.00000   ** fixed **
+        53  XE           0.95042   ** fixed **
+        54  XS           1.00000   ** fixed **
+        55  MIX          0.93892   ** fixed **
+        56  xom1         0.77577   ** fixed **
+        57  xom2         1.28073   ** fixed **
+        58  xom          1.00000   ** fixed **
+        59  xrho1        0.88746   ** fixed **
+        60  xrho2        1.72869   ** fixed **
+        61  xrho         1.00000   ** fixed **
+        62  XEPL         1.0
+        63  XSPL         1.0
+        64  XLAMAX       0.97827	
+        65  XLAMPI       0.59052
