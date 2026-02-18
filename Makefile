@@ -62,12 +62,14 @@ CERNLIBS = -Wl,-static -lgeant$(GEANTVER) -lpawlib -lgraflib -lgrafX11 -lpacklib
 ifeq ($(MYOS),Linux)
   LIBROOT = CTP/O.Linux/Linux/lib
 # JLab
+  CERN_ROOT = /cvmfs/oasis.opensciencegrid.org/jlab/scicomp/sw/el9/cernlib/2023
 #  CERN_ROOT = /apps/cernlib/i386_fc8/2005
 # 32 bit, standard Fedora distributuion
 #  CERN_ROOT = /usr/lib/cernlib/2006
 # 64 bit, standard Fedora distributuion
 #  CERN_ROOT =  /usr/lib64/cernlib/2006 
-  FFLAGSA=-O -w -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8 -ffpe-trap=invalid
+  FFLAGSA=-O -w -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8 -ffpe-trap=invalid -std=legacy -fno-implicit-none 
+
   INCLUDES=-I.
   FFLAGS= $(INCLUDES) $(FFLAGSA)
   FFLAG1=$(FFLAGS) -c
@@ -88,8 +90,9 @@ endif
 # Note that the CTP libraries still end up in the O.Linux directory...
 ifeq ($(MYOS),Darwin)
   LIBROOT = CTP/O.Linux/Linux/lib
-  CERN_ROOT = /apps/cernlib/i386_fc8/2005
-  FFLAGSA=-O -W -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8
+  #CERN_ROOT = /apps/cernlib/i386_fc8/2005
+  CERN_ROOT = /cvmfs/oasis.opensciencegrid.org/jlab/scicomp/sw/el9/cernlib/2023
+  FFLAGSA=-O -W -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8  
   INCLUDES=-I.
   FFLAGS= $(INCLUDES) $(FFLAGSA)
   FFLAG1=$(FFLAGS) -c
