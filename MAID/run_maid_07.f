@@ -7,10 +7,10 @@ c
 
       program run_maid_07
       IMPLICIT REAL*8 (A-H,O-Z)
-        EIMEV=855
-        EFMEV=200
-        THE=10
-         TH=90
+        EIMEV=4560
+        EFMEV=4044.4376
+        THE=7.66995
+         TH=0
         PHI=0
       call DFTOT(EIMEV,EFMEV,THE,TH,PHI,S5FOLD)
       write(*,*) ' output'

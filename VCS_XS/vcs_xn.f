@@ -25,11 +25,20 @@ c
       integer ntt1,ntt2,ntt3,ntt4,ntt5
       integer i,j,k,l,m
       parameter (Nx=5)
-      parameter (N1=8,N2=131,N3=40,N4=86,N5=37) ! kin1a
+c      parameter (N1=8,N2=131,N3=40,N4=86,N5=37) ! kin1a
 c      parameter (N1=8,N2=145,N3=40,N4=101,N5=37) ! kin1b
 c      parameter (N1=8,N2=131,N3=40,N4=91,N5=37) ! kin2a
 c      parameter (N1=8,N2=149,N3=40,N4=106,N5=37) ! kin2b
 c      parameter (N1=8,N2=156,N3=40,N4=101,N5=37) ! kin3b
+c      parameter (N1=8,N2=44,N3=40,N4=131,N5=37) ! Q05 for proposal
+c      parameter (N1=8,N2=95,N3=40,N4=131,N5=37) ! Q07 for proposal
+c      parameter (N1=8,N2=107,N3=40,N4=131,N5=37) ! Q15 for proposal
+c      parameter (N1=8,N2=104,N3=41,N4=131,N5=37) ! Q25 for proposal
+      parameter (N1=8,N2=101,N3=40,N4=131,N5=37) ! Q35beam2200
+c      parameter (N1=8,N2=167,N3=40,N4=121,N5=37) ! Q35beam3300
+c      parameter (N1=8,N2=106,N3=40,N4=131,N5=37) ! Q31beam2200
+c      parameter (N1=8,N2=98,N3=40,N4=131,N5=37) ! Q45beam2200
+c      parameter (N1=7,N2=163,N3=40,N4=121,N5=37) ! Q45beam3300
       integer NA(nx)
       real*4 X(Nx)
       real*4 A(N1+N2+N3+N4+N5)
@@ -106,6 +115,7 @@ c
                 enddo
              if (ntot-1 .gt. N1+N2+N3+N4+N5) stop 'VCS_XS: Ntot too large !'
            else
+              print *, "stat is: ", ios
               write(*,*) ' Could not open file ','VCS_XS/'//kine//'_binning.dat'
               stop
            endif
@@ -126,9 +136,22 @@ c
              ntt4= l+EB_NBIN+Ee_NBIN+Eth_NBIN
              ntt5= m+EB_NBIN+Ee_NBIN+Eth_NBIN+thgg_NBIN
              if (d1 .ne. a(i) ) stop ' VCS_XN: Problem with beam energy in input file'
+c             if (d1 .ne. a(i) ) write(*,*) ' i = ',a(i),' d1 = ',d1
+c             print *, d1, a(i), a(ntt2), a(ntt3), a(ntt4), a(ntt5)
+             if (d2 .ne. a(ntt2) ) write(*,*) ' ntt2 = ',a(ntt2),' d2 = ',d2,' d1 = ',d1
+             if (d2 .ne. a(ntt2) ) print *, a(i), a(ntt2), a(ntt3), a(ntt4), a(ntt5)
              if (d2 .ne. a(ntt2) ) stop ' VCS_XN: Problem with electron energyinput file'
+
+             if (d3 .ne. a(ntt3) ) write(*,*) ' ntt3 = ',a(ntt3),' d3 = ',d3,' d2 = ',d2
+             if (d3 .ne. a(ntt3) ) print *, a(i), a(ntt2), a(ntt3), a(ntt4), a(ntt5)
              if (d3 .ne. a(ntt3) ) stop ' VCS_XN: Problem with scattered anlge in input file'
+
+             if (d4 .ne. a(ntt4) ) print *, a(i), a(ntt2), a(ntt3), a(ntt4), a(ntt5)
              if (d4 .ne. a(ntt4) ) stop ' VCS_XN: Problem with thgg in input file'
+
+             if (d5 .ne. a(ntt5) ) write(*,*) ' ntt5 = ',a(ntt5),'d5 = ',d5,'d2 = ',d2,'d1 = ',d1
+             if (d5 .ne. a(ntt5) ) print *, a(i), a(ntt2), a(ntt3), a(ntt4), a(ntt5)
+             if (d5 .ne. a(ntt5) ) write(*,*) 'd3 = ',d3,'d4 = ',d4
              if (d5 .ne. a(ntt5) ) stop ' VCS_XN: Problem with phigg in input file'
                if (abs(d5-(phgg_low + phgg_step*(m-1)))>phgg_step/2. ) then
                   write(*,*) i,j,k,l,m,phgg_low + phgg_step*(m-1)
