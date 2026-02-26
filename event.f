@@ -1751,7 +1751,9 @@ C If using Coulomb cirrections, include focusing factor
 
 	cos_dtheta = x*x0 + y*y0 + z*z0
 	dx = x / cos_dtheta
-	dy = sqrt(1/cos_dtheta**2-1.-dx**2)
+	dy = (1/cos_dtheta**2-1.-dx**2)
+        if (dy.lt.0.0) dy = 0.0
+        else dy = sqrt(dy)
 
 	y_event = y/cos_dtheta	!projected to plane perp. to spectrometer.
 	if (y_event .lt. y0) dy = -dy
