@@ -68,8 +68,7 @@ ifeq ($(MYOS),Linux)
 #  CERN_ROOT = /usr/lib/cernlib/2006
 # 64 bit, standard Fedora distributuion
 #  CERN_ROOT =  /usr/lib64/cernlib/2006 
-  FFLAGSA=-O -w -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8 -ffpe-trap=invalid -std=legacy -fno-implicit-none 
-
+  FFLAGSA=-O -w -ffixed-line-length-132 -ff2c -fno-automatic -fdefault-real-8 -ffpe-trap=invalid -std=legacy -fno-implicit-none -g -O0 -fbacktrace -fcheck=all
   INCLUDES=-I.
   FFLAGS= $(INCLUDES) $(FFLAGSA)
   FFLAG1=$(FFLAGS) -c
