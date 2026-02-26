@@ -71,9 +71,9 @@ C DJG Get density effect correction (I got this from JV).
 	else
 	  Eloss_mp = 0.1536e-03 * zeff/aeff * thick * ( 19.26 +
      &          log(thick/dens) )
-	  Eloss_mp_new = 0.1536e-03 * zeff/aeff *thick/beta**2* (
-     &          log(me/I**2) + 1.063 + 2.*log(gamma*beta) + 
-     &		log(0.1536*zeff/aeff*thick/beta**2)-beta**2-denscorr)
+c	  Eloss_mp_new = 0.1536e-03 * zeff/aeff *thick/beta**2* (
+c     &          log(me/I**2) + 1.063 + 2.*log(gamma*beta) + 
+c     &		log(0.1536*zeff/aeff*thick/beta**2)-beta**2-denscorr)
 	  Eloss_mp_pdg = chsi*(log(2.0*me*beta**2*gamma**2/(IX(ZI)*1e-6))
      & + log(chsi/(IX(ZI)*1e-6)) + 0.2 -beta**2 - denscorr)
 c	  write(6,*) 'ELOSS',Eloss_mp,Eloss_mp_new 
