@@ -19,7 +19,7 @@ rcParams = {
 plt.rcParams.update(rcParams)
 
 kine_settings = ["1", "2", "3", "4", "5", "6", "7"]
-prefix        = ["a", "b", "bb", "c", "d"]
+prefix        = ["a", "b", "b", "c", "d"]
 kine_with_prefix = [k + p for p in prefix for k in kine_settings]
 def beam_energy_by_prefix(prefix):
   if prefix in ["a", "b"]:
@@ -32,8 +32,6 @@ def Q2_by_prefix(prefix):
     return 0.026
   elif prefix == "b":
     return 0.030
-  elif prefix == "bb":
-    return 0.0363
   elif prefix == "c":
     return 0.040
   elif prefix == "d":
@@ -41,8 +39,8 @@ def Q2_by_prefix(prefix):
 
 beam_energies = [beam_energy_by_prefix(p) for p in prefix for k in kine_settings]
 Q2s           = [Q2_by_prefix(p) for p in prefix for k in kine_settings]
-theta_pqs_nominal_cm     = [7.0,11.8,11.8,35.0,55.0,75.0,85.0,7.0,14.4,14.4,35.0,55.0,75.0,85.0,7.0,15.0,27.2,35.0,55.0,75.0,85.0,7.0,15.0,29.6,35.0,55.0,75.0,85.0,7.0,15.0,35.0,35.0,55.0,75.0,83.8]
-phi_pqs_nominal_cm       = [0.0,0.0,180.0,180.0,180.0,180.0,180.0,0.0,180.0,0.0,180.0,180.0,180.0,180.0,0.0,180.0,0.0,180.0,180.0,180.0,180.0,0.0,180.0,0.0,180.0,180.0,180.0,180.0,0.0,180.0,0.0,180.0,180.0,180.0,180.0]
+theta_pqs_nominal_cm     = [7,15,15,35,55,75,85,7,15,21,35,55,75,85,7,15,28,35,55,75,85,7,15,33,33,55,75,85]
+phi_pqs_nominal_cm       = [0,0,180,180,180,180,180,0,180,0,180,180,180,180,0,180,0,180,180,180,180,0,180,0,180,180,180,180]
 
 mpi0 = 0.135  # GeV/c^2
 Ngen = 10000
@@ -54,7 +52,7 @@ def main():
 
     normfacs = []
     successful_random_seeds = []
-    for random_seed in range(1410, 1420):
+    for random_seed in range(1000, 1001):
       filename = "nd26_{}_e{}_rs{}".format(kine_setting, beam_energy, random_seed)
       metafile = "outfiles/{}.hist".format(filename)
       if len(glob(metafile)) == 0:

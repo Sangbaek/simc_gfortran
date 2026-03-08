@@ -25,7 +25,8 @@ begin parm kinematics_main
   spec%e%theta = custom_etheta	;  e arm angle setting (degrees)
   spec%p%P = custom_pp		;  p arm central momentum (MeV/c)
   spec%p%theta = custom_ptheta	;  p arm angle setting (degrees)
-  mrecoil = 134.976		;mass of pi0
+  mrecoil = 0.0
+  vcs_xs_file = 'custom_kin'
 end parm kinematics_main
 
 begin parm target
@@ -34,7 +35,7 @@ begin parm target
   targ%mass_amu = 1.007276	;  target mass in amu
   targ%mrec_amu = 0.		;  recoil mass in amu (eep=A-1 system,pion=A-2)
   targ%rho = 0.07231		;  target density (g/cm^3)
-  targ%thick = 289.2		;  target thick (mg/cm^2)
+  targ%thick = 723.1		;  target thick (mg/cm^2)
   targ%angle = 0.		;  target angle (for solid target) (degrees)
   targ%abundancy = 100.		;  target purity (%)
   targ%can = 4                  ;  1=beer can (fpi), 2=pudding can (nucpi)
