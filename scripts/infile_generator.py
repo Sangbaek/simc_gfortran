@@ -7,7 +7,7 @@ def main():
   with open('infiles/ndelta_template.inp', 'r') as template_file:
     template_content = template_file.read()
 
-  runstrings = '#!/bin/tcsh\n\ncd /volatile/hallc/alphaE/sangbaek/simc_practice/simc_gfortran/\nmodule use /scigroup/cvmfs/scicomp/sw/el9/modulefiles\nmodule load root/6.30.06-gcc11.4.0\n'
+  runstrings = '#!/bin/tcsh\n\ncd /work/hallc/alphaE/sangbaek/simc_practice/simc_gfortran/\nmodule use /scigroup/cvmfs/scicomp/sw/el9/modulefiles\nmodule load root/6.30.06-gcc11.4.0\n'
 
   for kinema_setting in kinema_lines:
     kin_index          = kinema_setting.split()[0]
