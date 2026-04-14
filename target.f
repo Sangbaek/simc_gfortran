@@ -44,11 +44,11 @@ c targ%can ==3 is loop1 2017 target
 	   inner_radius_2017 = 1.315*inch_cm ! cm
 	   outer_radius_2017 = inner_radius_2017+ sphere_wall_2017! cm
 	   endif
-c targ%can ==4 is loop2 2017 target
+c targ%can ==4 is n-delta !loop2 2017 target
 	if (targ%can .eq. 4) then
-	   entrance_wall_2017 = 0.0150 ! cm
-	   side_wall_2017 = 0.0219 ! cm
-	   sphere_wall_2017 = 0.0191 ! cm
+	   entrance_wall_2017 = 0.0121 ! cm
+	   side_wall_2017 = 0.0151 ! cm
+	   sphere_wall_2017 = 0.0166 ! cm
 	   inner_radius_2017 = 1.315*inch_cm ! cm
 	   outer_radius_2017 = inner_radius_2017+ sphere_wall_2017! cm
 	   endif
